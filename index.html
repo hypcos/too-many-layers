@@ -10,8 +10,11 @@
 <script src="lib/break_eternity_modified.js"></script>
 <script src="lib/vue3.4.19.js"></script>
 <script src="support/notation-support.js"></script>
+<script src="notations/X-Y.js"></script>
+<script src="notations/omega-Y.js"></script>
+<!--Insert more notations here-->
 <script src="support/framework.js"></script>
-<script src="support/save-load.js"></script>
+<script src="support/method.js"></script>
 </head>
 <body><div id="loading">
    <br><br>GAME LOADING
@@ -24,8 +27,6 @@
    <div class="tab0 left">
       <button @mousedown="current_tab=1" :disabled="current_tab===1">Options</button><br>
       <button @mousedown="current_tab=2" :disabled="current_tab===2">Automation</button><br>
-      <button @mousedown="current_tab=3" :disabled="current_tab===3">Achievements</button><br>
-      <button @mousedown="current_tab=4" :disabled="current_tab===4">Trials</button><br>
       <button @mousedown="current_tab=''" :disabled="typeof current_tab!=='number'">Layers</button>
    </div>
    <div class="tab">
