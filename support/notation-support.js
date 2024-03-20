@@ -1,4 +1,3 @@
-var Notation,notations=[]
 var lowest_FS_term_exceed = (expr,need_to_exceed,FS,compare)=>{
    var res,n=0
    while(true){
@@ -37,7 +36,7 @@ var sequences=[]
       if(!width) break
       count=1
       while(expr.slice(n,n+width)+''===expr.slice(n+width*count,n+width*(count+1))+'') ++count
-      if(width===1?count>2:count>1){
+      if(width*(count-1)>=player.d){
          cuts.push({seq:[expr[n]].concat(shorten_sequence(expr.slice(n+1,n+width))),count:count})
       }else{
          cuts = cuts.concat(expr.slice(n,n+width*count))
@@ -48,7 +47,7 @@ var sequences=[]
 }
 ,shorten_to_string = s=>s.map(e=>
    ({}).toString.call(e)==='[object Object]'
-   ?'('+shorten_to_string(e.seq)+')<sup>'+e.count+'</sup>'
+   ?'('+shorten_to_string(e.seq)+')'+(''+e.count).split('').map(n=>'⁰¹²³⁴⁵⁶⁷⁸⁹'.charAt(n)).join('')
    :e).join()
 ,registerSequence = x=>{
    sequences.push(Object.assign({
@@ -58,7 +57,7 @@ var sequences=[]
       isLimit:seq=>seq[seq.length-1]>1,
       increment:seq=>seq.concat(1),
       decrement:seq=>seq.slice(0,-1),
-      parse:str=>str.split(',').map(e=>+e),
+      parse:str=>str.length?str.split(',').map(e=>+e):[],
       invParse:seq=>seq.join(),
       display:seq=>shorten_to_string(shorten_sequence(seq)),
    },x))
@@ -136,10 +135,12 @@ var saladSum = (center,...args)=>{
       var idx = expr.findIndex((e,i)=>!args[i%args.length].isZero(e))
       if(idx===-1) return []
       var expr1 = expr.slice()
-      expr1[idx] = args[idx%args.length].isLimit(expr[idx]) ?
-         args[idx%args.length].FS(expr[idx],FSterm) :
-         args[idx%args.length].decrement(expr[idx])
-      if(idx) expr1[idx-1] = args[(idx-1)%args.length].FS([Infinity],FSterm)
+      if(args[idx%args.length].isLimit(expr[idx])){
+         expr1[idx] = args[idx%args.length].FS(expr[idx],FSterm)
+      }else{
+         expr1[idx] = args[idx%args.length].decrement(expr[idx])
+         if(idx) expr1[idx-1] = args[(idx-1)%args.length].FS([Infinity],FSterm)
+      }
       check_tail(expr1)
       return expr1
    }
@@ -172,13 +173,13 @@ var saladSum = (center,...args)=>{
          return r
       },
       parse:layerKey=>{
-         var arr = prefixs.map((pref,idx)=>
+         var arr = prefixs.flatMap((pref,idx)=>
             layerKey.split(pref)
             .map(e=>e.length+pref.length)
             .reduce((a,x,i)=>a.concat(x+a[i]),[-pref.length])
             .slice(1,-1)
             .map(e=>[e,idx])
-         ).flat().sort((a,b)=>a[0]-b[0])
+         ).sort((a,b)=>a[0]-b[0])
          for(var i=0,idx=0,expr=[];layerKey.slice(idx);++i){
             if(i===center){
                expr[i] = args[i].parse(layerKey.slice(idx,arr[0]?.[0]??Infinity))
@@ -203,17 +204,18 @@ var saladSum = (center,...args)=>{
          return expr
       },
       invParse:expr=>{
-         var count=0
+         var count=0,hasMark=false
          return expr.map((e,i)=>{
             var notation = args[i%args.length]
             if(notation.isZero(e)){
-               if(++count<args.length) return ''
+               if((hasMark||i!==args.length-1) && ++count<args.length) return ''
                count = 0
                return notation.entryMark
             }
             count = 0
-            return i<center?notation.invParse(e)+notation.entryMark:
-               i===center?notation.invParse(e): notation.entryMark+notation.invParse(e)
+            if(i===center) return notation.invParse(e)
+            hasMark = true
+            return i<center?notation.invParse(e)+notation.entryMark:notation.entryMark+notation.invParse(e)
          }).join('')
       },
       display:expr=>expr.map((e,i)=>args[i%args.length].isZero(e) ? '' : displayed_prefixs[i%args.length]+

@@ -2,6 +2,7 @@
 .left{text-align:left}
 .big{font-size:125%}
 .bold{font-weight:bold}
+.red{color:red}
 body{
    background-color: #555;
    color: #fff;
@@ -11,7 +12,7 @@ body{
    text-align: center;
    font: 11px 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
-button{/*default style for one-time upgrades*/
+button{/*default upgrade/buyable style*/
    background-color: #aef;
    color: #000;
    height: auto;
@@ -170,6 +171,8 @@ sub+sup{margin-left:-1ch}
 }
 .prestige{
    min-width: 25%;
+   min-height: 50px;
+   position: relative;
    padding: 2px 5px;
    border-width: 2px;
    border-radius: 7px;
@@ -177,8 +180,9 @@ sub+sup{margin-left:-1ch}
 }
 /*Alternative text*/
 .alter{
+   font-family: Tahoma, 'Segoe UI', Geneva, Verdana, sans-serif;
    font-size: 18px;
-   font-weight: 600;
+   font-weight: 540;
    text-shadow: 0 -1px 3px;
 }
 .bigrow{
@@ -300,15 +304,22 @@ sub+sup{margin-left:-1ch}
    background-color: #02a;
    color: #fff;
 }
-/*Trials*/
-.trial{
+/*Challenges*/
+.challenge{
    background-color: #ffa;
    height: 172px;
    width: 300px;
+   position: relative;
    padding: 4px;
    border: 2px solid #ff0;
    margin: 0;
    vertical-align:text-top;
+}
+.challenge.already{background-color:#aa0}
+/*Upgrades*/
+.upg{
+   height: 129px;
+   width: 129px;
 }
 /*Achievements*/
 .ach{
@@ -331,6 +342,22 @@ sub+sup{margin-left:-1ch}
    font-size: 18px;
    font-weight: 600;
    text-shadow: 1px 0 3px;
+}
+/*Automation*/
+.autos select{font-size:15px}
+.autos button{
+   background-color: #adf;
+   border: 1px solid #09f;
+   padding: 1px 6px 3px;
+   font-size: 15px;
+   transition: .1s;
+}
+.autos .switchy{
+   min-width: 60px;
+   border: 2px solid #09f;
+   font-size: 22px;
+   font-weight: 500;
+   transition: .1s;
 }
 /*Options*/
 #loading{
@@ -358,7 +385,7 @@ sub+sup{margin-left:-1ch}
    font-weight: 500;
    transition: .2s;
 }
-#setting button:hover{
+#setting button:hover, .autos button:hover{
    background-color: #06a;
    color: #fff;
 }

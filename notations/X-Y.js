@@ -163,7 +163,7 @@
     }
     return seq
   }
-  var data={}
+  var data = new Map()
   registerSequence({
     fullname:'X-Y sequence',
     FS:(seq,FSterm)=>{
@@ -171,9 +171,10 @@
        var datakey=''+seq
        if(datakey==='Infinity') return [1,1+FSterm]
        if(seq[seq.length-1]===1) return seq.slice(0,seq.length-1)
-       if(!data[datakey]) data[datakey] = []
-       else if(data[datakey][FSterm]!==undefined) return data[datakey][FSterm]
-       return data[datakey][FSterm] = expand(toSequence(seq),FSterm,[1,0,1])
+       var val = data.get(datakey+'"'+FSterm)
+       if(val!==undefined) return val
+       data.set(datakey+'"'+FSterm,val = expand(toSequence(seq),FSterm,[1,0,1]))
+       return val
     },
     layerPrefix:'sub',
     layerShortPrefix:'s',

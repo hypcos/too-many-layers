@@ -376,7 +376,7 @@
       }
       return to_sequence(mountain)
    }
-   var dataStrong={},dataActual={},dataMedium={},dataWeak={}
+   var dataStrong=new Map(),dataActual=new Map(),dataMedium=new Map(),dataWeak=new Map()
    registerSequence({
       fullname:'ω-Y (strong magma)',
       FS:(seq,FSterm)=>{
@@ -384,9 +384,10 @@
          var datakey=''+seq
          if(datakey==='Infinity') return [1,1+FSterm]
          if(seq[seq.length-1]===1) return seq.slice(0,seq.length-1)
-         if(!dataStrong[datakey]) dataStrong[datakey] = []
-         else if(dataStrong[datakey][FSterm]!==undefined) return dataStrong[datakey][FSterm]
-         return dataStrong[datakey][FSterm] = strong_magma(seq,FSterm)
+         var val = dataStrong.get(datakey+'"'+FSterm)
+         if(val!==undefined) return val
+         dataStrong.set(datakey+'"'+FSterm,val = strong_magma(seq,FSterm))
+         return val
       },
       layerPrefix:'',
       layerShortPrefix:'',
@@ -399,9 +400,10 @@
          var datakey=''+seq
          if(datakey==='Infinity') return [1,1+FSterm]
          if(seq[seq.length-1]===1) return seq.slice(0,seq.length-1)
-         if(!dataActual[datakey]) dataActual[datakey] = []
-         else if(dataActual[datakey][FSterm]!==undefined) return dataActual[datakey][FSterm]
-         return dataActual[datakey][FSterm] = actual_magma(seq,FSterm)
+         var val = dataActual.get(datakey+'"'+FSterm)
+         if(val!==undefined) return val
+         dataActual.set(datakey+'"'+FSterm,val = strong_magma(seq,FSterm))
+         return val
       },
       layerPrefix:'good ',
       layerShortPrefix:'γ',
@@ -414,9 +416,10 @@
          var datakey=''+seq
          if(datakey==='Infinity') return [1,1+FSterm]
          if(seq[seq.length-1]===1) return seq.slice(0,seq.length-1)
-         if(!dataMedium[datakey]) dataMedium[datakey] = []
-         else if(dataMedium[datakey][FSterm]!==undefined) return dataMedium[datakey][FSterm]
-         return dataMedium[datakey][FSterm] = medium_magma(seq,FSterm)
+         var val = dataMedium.get(datakey+'"'+FSterm)
+         if(val!==undefined) return val
+         dataMedium.set(datakey+'"'+FSterm,val = strong_magma(seq,FSterm))
+         return val
       },
       layerPrefix:'great ',
       layerShortPrefix:'g',
@@ -429,9 +432,10 @@
          var datakey=''+seq
          if(datakey==='Infinity') return [1,1+FSterm]
          if(seq[seq.length-1]===1) return seq.slice(0,seq.length-1)
-         if(!dataWeak[datakey]) dataWeak[datakey] = []
-         else if(dataWeak[datakey][FSterm]!==undefined) return dataWeak[datakey][FSterm]
-         return dataWeak[datakey][FSterm] = weak_magma(seq,FSterm)
+         var val = dataWeak.get(datakey+'"'+FSterm)
+         if(val!==undefined) return val
+         dataWeak.set(datakey+'"'+FSterm,val = strong_magma(seq,FSterm))
+         return val
       },
       layerPrefix:'grand ',
       layerShortPrefix:'G',

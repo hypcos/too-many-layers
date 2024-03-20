@@ -9,33 +9,415 @@
 <script src="lib/lz-string.min.js"></script>
 <script src="lib/break_eternity_modified.js"></script>
 <script src="lib/vue3.4.19.js"></script>
+</head>
+<body><div id="loading">
+   <br><br>GAME LOADING
+</div>
+<div id="game">
+   <div class="alter" v-for="item in progressTexts">Progress to {{item[0]}}: {{item[1]}}%</div>
+   Your number is <span style="font-size:50px" v-html="format(getPoint(''))"></span><br>
+   <button style="width:344px;position:relative" :disabled="!canBuyBuyable('','G')"
+   @mousedown="delay(buyBuyable,'','G')" @dblclick="delay(buymaxBuyable,'','G')">
+      Buy generator for {{getCostText('','G')}}<br>
+      Current amount: {{format(getThingAmount('','G'),true)}}
+      <span class="tooltip" v-html="getLayerThings('').get('G').tooltip"></span>
+   </button>
+   <br>Your number is gaining {{format(getComputed('','P_speed'))}} per second
+   <div v-if="offlineTime">Offline time progressing: {{format(offlineTime)}} seconds</div>
+   <div class="tab0 left">
+      <button @mousedown="tabs.topleft=1" :disabled="tabs.topleft===1">Options</button><br>
+      <button @mousedown="tabs.topleft=2" :disabled="tabs.topleft===2">Automation</button><br>
+      <button @mousedown="tabs.topleft=3" :disabled="tabs.topleft===3">Layers</button>
+   </div>
+   <div v-if="tabs.topleft===1" id="setting">
+      <div class="itemrow">
+         <div class="itemrow4"><button @mousedown="player.H=+!player.H">Hotkey {{player.H?'On':'Off'}}</button></div>
+         <div class="itemrow4"><button @mousedown="delay(saveGame)">Save Now</button></div>
+         <div class="itemrow4"><button @mousedown="delay(exportGame)">Im/Export</button></div>
+         <div class="itemrow4"><button @mousedown="delay(hardReset)">FULL RESET</button></div>
+      </div>
+      <div class="itemrow">
+         <div class="itemrow4" style="position:relative">
+            Display {{player.D}} significant digits<br>
+            <input type="range" v-model.number="player.D" min="2" max="13">
+            <span class="tooltip">
+               Numbers beyond 9e15 have both mantissa and exponent count into significant digits
+            </span>
+         </div>
+         <div class="itemrow4">
+            Show ≤{{player.p}} progress statements<br>
+            <input type="range" v-model.number="player.p" min="0" max="9">
+         </div>
+         <div class="itemrow4">
+            Update interval: {{player.u}} ms <br>
+            <input type="range" v-model.number="player.u" min="16" max="333">
+         </div>
+         <div class="itemrow4">
+            Automatic saving:<br><select v-model.number="player.s">
+               <option value="1">1 s</option>
+               <option value="5">5 s</option>
+               <option value="10">10 s</option>
+               <option value="20">20 s</option>
+               <option value="60">1 min</option>
+               <option value="180">3 min</option>
+               <option value="600">10 min</option>
+               <option value="3600">1 h</option>
+            </select>
+         </div>
+      </div>
+      <div class="itemrow">
+         <div class="itemrow2">
+            Use shorthand for sequences when it can shorten {{player.d}} or more entries
+            <input type="range" v-model.number="player.d" min="1" max="12">
+         </div>
+         <div class="itemrow2">
+            Offline progress speed: ×{{format(Math.exp(player.o*.03+2))}}<br>
+            <input type="range" v-model.number="player.o" min="0" max="200" step="0.25">
+         </div>
+      </div>
+      Hotkeys:
+      <br>A: toggle all autobuyers. R: toggle all autoresets.
+      <br>Shift + 0~9 to record the viewing layer. 0~9 to visit the recorded layer.
+      <br>Space: reset from that layer.
+      <br>B: buy max of that layer.
+      <br>N: buy max of number generator.
+      <br>M: buy max of everything.
+      <br>Double click on something to buy max of it.
+      <div v-if="exportBox" id="export">
+         <textarea v-model="exportContent"></textarea>
+         <button @mousedown="delay(importGame)">Import</button>
+         <button @mousedown="exportBox=false">Cancel</button>
+      </div>
+   </div>
+   <template v-if="tabs.topleft===2">
+      <div class="tab">
+         <button @mousedown="tabs.autos=0" :disabled="tabs.autos===0">Autobuyers</button>
+         <button @mousedown="tabs.autos=1" :disabled="tabs.autos===1">Autoresets</button>
+      </div>
+      <div class="autos" v-if="tabs.autos===0">
+         <div class="column3">
+            <select style="width:99%" size="25" :value="autobuyerSelected">
+               <option v-for="(item,i) in player.A" :class="{red:!item[1]||!hasAutobuyer(item[0])}" :value="item"
+               @mousedown="autobuyerSelected=item,autobuyerSelectIndex=i,abThingPoolSelected=[]">
+               {{getLayerFullname(item[0])}}</option>
+            </select>
+            <button @mousedown="delay(autobuyerMove,-Infinity)">Priority Top</button>
+            <button @mousedown="delay(autobuyerMove,-1)">Up</button>
+            <button @mousedown="delay(autobuyerMove,1)">Down</button>
+            <button @mousedown="delay(autobuyerMove,Infinity)">Priority Bottom</button><br>
+            <button @mousedown="delay(autobuyerMove,-20)">20 Up</button>
+            <button @mousedown="delay(autobuyerMove,-5)">5 Up</button>
+            <button @mousedown="delay(autobuyerMove,5)">5 Down</button>
+            <button @mousedown="delay(autobuyerMove,20)">20 Down</button>
+         </div>
+         <div class="column3" style="width:66.66%">
+            <template v-if="autobuyerSelected.length">
+            <div class="bigrow">
+               Your autobuyer bought in {{getLayerShortname(autobuyerSelected[0])}} is
+               <button class="switchy" @mousedown="autobuyerSelected[1]=+!autobuyerSelected[1]">
+                  {{autobuyerSelected[1]?'On':'Off'}}
+               </button>
+               <span v-if="abTargetLayerText" v-html="abTargetLayerText"></span>
+            </div>
+            <div v-if="hasAutobuyer(autobuyerSelected[0])">&nbsp;</div>
+            <div v-else>
+               Currently you do not have the autobuyer. Go to {{getLayerShortname(autobuyerSelected[0])}}
+               and buy it if you want it to work.
+            </div>
+            <div class="bigrow">The autobuyer will keep {{format(autobuyerSelected[2]*100)}}% of your points unspent</div>
+            <input type="range" v-model.number="autobuyerSelected[2]" min="0" max="1" step="0.001">
+            <template v-if="abCurrentWorking!==undefined">
+               <div class="bigrow">
+                  Prior things (in the right side):
+                  The autobuyer will firstly buy ONE of each when possible,
+                  ignoring the keeping ratio above.
+               </div>
+               <div class="column2">
+                  <button @mousedown="abThingPoolSelected.length&&
+                  (autobuyerSelected[3].includes(abThingPoolSelected[0])||autobuyerSelected[3].push(abThingPoolSelected[0]))">
+                     Add prior thing
+                  </button><br>
+                  <select style="width:80%" size="17" :value="abThingPoolSelected">
+                     <option v-for="pair in abThingPool" :value="pair"
+                     @mousedown="abThingPoolSelected=pair">
+                     {{getThingFullname(abCurrentWorking,pair[0])}}</option>
+                  </select>
+               </div>
+               <div class="column2">
+                  <button @mousedown="autobuyerSelected[3].splice(0)">Remove all</button><br>
+                  <select style="width:80%" size="17">
+                     <option v-for="(thingkey,i) in autobuyerSelected[3]" :value="thingkey">
+                     {{getThingFullname(abCurrentWorking,thingkey)}}</option>
+                  </select>
+               </div>
+            </template>
+            </template>
+         </div>
+      </div>
+      <div class="autos" v-if="tabs.autos===1">
+         <div class="column3">
+            <select style="width:99%" size="25" :value="autoprestigerSelected">
+               <option v-for="(item,i) in player.a" :class="{red:!item[1]||!hasAutoprestiger(item[0])}" :value="item"
+               @mousedown="autoprestigerSelected=item,autoprestigerSelectIndex=i,update_apInputs()">
+               {{getLayerFullname(item[0])}}</option>
+            </select>
+            <button @mousedown="delay(autoprestigerMove,-Infinity)">Priority Top</button>
+            <button @mousedown="delay(autoprestigerMove,-1)">Up</button>
+            <button @mousedown="delay(autoprestigerMove,1)">Down</button>
+            <button @mousedown="delay(autoprestigerMove,Infinity)">Priority Bottom</button><br>
+            <button @mousedown="delay(autoprestigerMove,-20)">20 Up</button>
+            <button @mousedown="delay(autoprestigerMove,-5)">5 Up</button>
+            <button @mousedown="delay(autoprestigerMove,5)">5 Down</button>
+            <button @mousedown="delay(autoprestigerMove,20)">20 Down</button>
+         </div>
+         <div class="column3" style="width:66.66%">
+            <template v-if="autoprestigerSelected.length">
+            <div class="bigrow">
+               Your autoreset bought in {{getLayerShortname(autoprestigerSelected[0])}} is
+               <button class="switchy" @mousedown="autoprestigerSelected[1]=+!autoprestigerSelected[1]">
+                  {{autoprestigerSelected[1]?'On':'Off'}}
+               </button>
+               <span v-if="apTargetLayerText" v-html="apTargetLayerText"></span>
+            </div>
+            <div v-if="hasAutoprestiger(autoprestigerSelected[0])">&nbsp;</div>
+            <div v-else>
+               Currently you do not have the autoreset. Go to {{getLayerShortname(autoprestigerSelected[0])}}
+               and buy it if you want it to work.
+            </div>
+            <div class="bigrow">
+               Select formula to calculate trigger threshold.
+               <select v-model.number="autoprestigerSelected[4]">
+                  <option value="0">Target layer's point gain based on total points</option>
+                  <option value="1">Target layer's point gain based on total points and total points of another layer</option>
+                  <option value="2">Target layer's point gain based on reset counts</option>
+                  <option value="3">Target layer's point gain based on reset counts and reset counts of another layer</option>
+                  <option value="4">Time/s in target layer based on reset counts</option>
+                  <option value="5">Time/s in target layer based on reset counts and reset counts of another layer</option>
+                  <option value="6">Reset counts of another layer based on reset counts of target layer</option>
+               </select>
+            </div>
+            <div class="bigrow" v-if="(autoprestigerSelected[4]&1)||(autoprestigerSelected[4]===6)">
+               Select "another layer" (it can be the same as target layer).
+               <select v-model="autoprestigerSelected[5]">
+                  <option v-for="item in reverseLayerKeys" :value="item">
+                  {{getLayerFullname(item)}}</option>
+               </select>
+            </div>
+            <div class="bigrow">
+               And taking lg(1+...)'s
+               <input type="range" style="width:200px" v-model.number="autoprestigerSelected[6][0]" min="0" max="8">
+               <input type="range" style="width:200px" v-model.number="autoprestigerSelected[6][1]" min="0" max="8">
+               <br>The autoreset will trigger when {{applyLogText(apFormulaLRR[0],autoprestigerSelected[6][0])}} ≥
+               <span v-if="autoprestigerSelected[4]&1">
+                  <input v-model="apFormulaInputs[0]" @keydown.stop @change="invUpdate_apInputs(0)"> +
+                  <input v-model="apFormulaInputs[1]" @keydown.stop @change="invUpdate_apInputs(1)">
+                  × {{applyLogText(apFormulaLRR[1],autoprestigerSelected[6][1])}} +
+                  <input v-model="apFormulaInputs[4]" @keydown.stop @change="invUpdate_apInputs(4)">
+                  × {{applyLogText(apFormulaLRR[2],autoprestigerSelected[6][1])}} +
+                  <input v-model="apFormulaInputs[5]" @keydown.stop @change="invUpdate_apInputs(5)">
+                  × {{applyLogText(apFormulaLRR[1],autoprestigerSelected[6][1])}}
+                  × {{applyLogText(apFormulaLRR[2],autoprestigerSelected[6][1])}} +
+                  <input v-model="apFormulaInputs[2]" @keydown.stop @change="invUpdate_apInputs(2)">
+                  × {{applyLogText(apFormulaLRR[1],autoprestigerSelected[6][1]+1)}} +
+                  <input v-model="apFormulaInputs[6]" @keydown.stop @change="invUpdate_apInputs(6)">
+                  × {{applyLogText(apFormulaLRR[2],autoprestigerSelected[6][1]+1)}} +
+                  <input v-model="apFormulaInputs[7]" @keydown.stop @change="invUpdate_apInputs(7)">
+                  × {{applyLogText(apFormulaLRR[1],autoprestigerSelected[6][1]+1)}}
+                  × {{applyLogText(apFormulaLRR[2],autoprestigerSelected[6][1]+1)}} +
+                  <input v-model="apFormulaInputs[3]" @keydown.stop @change="invUpdate_apInputs(3)">
+                  × {{applyLogText(apFormulaLRR[1],autoprestigerSelected[6][1])}}
+                  × {{applyLogText(apFormulaLRR[1],autoprestigerSelected[6][1]+1)}} +
+                  <input v-model="apFormulaInputs[8]" @keydown.stop @change="invUpdate_apInputs(8)">
+                  × {{applyLogText(apFormulaLRR[2],autoprestigerSelected[6][1])}}
+                  × {{applyLogText(apFormulaLRR[2],autoprestigerSelected[6][1]+1)}} +
+                  <input v-model="apFormulaInputs[9]" @keydown.stop @change="invUpdate_apInputs(9)">
+                  × {{applyLogText(apFormulaLRR[1],autoprestigerSelected[6][1])}}
+                  × {{applyLogText(apFormulaLRR[2],autoprestigerSelected[6][1]+1)}} +
+                  <input v-model="apFormulaInputs[10]" @keydown.stop @change="invUpdate_apInputs(10)">
+                  × {{applyLogText(apFormulaLRR[2],autoprestigerSelected[6][1])}}
+                  × {{applyLogText(apFormulaLRR[1],autoprestigerSelected[6][1]+1)}}
+               </span>
+               <span v-else>
+                  <input v-model="apFormulaInputs[0]" @keydown.stop @change="invUpdate_apInputs(0)"> +
+                  <input v-model="apFormulaInputs[1]" @keydown.stop @change="invUpdate_apInputs(1)">
+                  × {{applyLogText(apFormulaLRR[1],autoprestigerSelected[6][1])}} +
+                  <input v-model="apFormulaInputs[2]" @keydown.stop @change="invUpdate_apInputs(2)">
+                  × {{applyLogText(apFormulaLRR[1],autoprestigerSelected[6][1]+1)}} +
+                  <input v-model="apFormulaInputs[3]" @keydown.stop @change="invUpdate_apInputs(3)">
+                  × {{applyLogText(apFormulaLRR[1],autoprestigerSelected[6][1])}}
+                  × {{applyLogText(apFormulaLRR[1],autoprestigerSelected[6][1]+1)}}
+               </span>
+            </div>
+            <div class="bigrow">
+               <button class="switchy" @mousedown="autoprestigerSelected[2]=(autoprestigerSelected[2]+1)%4">
+                  Prioritization mode
+               </button><br>
+               <span v-if="autoprestigerSelected[2]===0">
+                  Autoreset immediately fires once it reaches the threshold.
+               </span>
+               <span v-else-if="autoprestigerSelected[2]===1">
+                  If threshold reached, the autoreset fires only if next autoreset doesn't reach its threshold.<br>
+                  If threshold unreached, ignore the autoresets until the one bought in
+                  <select v-model="autoprestigerSelected[3]">
+                     <option v-for="item in player.a" :value="item[0]">
+                     {{getLayerShortname(item[0])}}</option>
+                  </select><br>
+                  (selecting itself or a high-priority autoreset, this one will skip everything below)
+               </span>
+               <span v-else-if="autoprestigerSelected[2]===2">
+                  If threshold reached, the autoreset fires only if it makes bigger point gain multiplier than lower-priority autoresets.
+                  <br>The comparison ends at the autoreset bought in
+                  <select v-model="autoprestigerSelected[3]">
+                     <option v-for="item in player.a" :value="item[0]">
+                     {{getLayerShortname(item[0])}}</option>
+                  </select><br>
+                  (selecting itself or a high-priority autoreset, this one will compare everything below)
+                  <br>If threshold unreached, ignore the autoresets until the one bought in that layer.
+               </span>
+               <span v-else-if="autoprestigerSelected[2]===3">
+                  If threshold reached, the autoreset fires only if it makes bigger point gain multiplier than lower-priority autoresets.
+                  <br>The comparison ends at any autoreset with threshold unreached or the autoreset bought in
+                  <select v-model="autoprestigerSelected[3]">
+                     <option v-for="item in player.a" :value="item[0]">
+                     {{getLayerShortname(item[0])}}</option>
+                  </select><br>
+                  (selecting itself or a high-priority autoreset, this one will compare everything below)
+                  <br>If threshold unreached, ignore the autoresets until the one bought in that layer.
+               </span>
+            </div>
+            The prioritization modes will see Off or not-yet-bought autoresets as if they don't exist on the list.
+            </template>
+         </div>
+      </div>
+   </template>
+   <template v-if="tabs.topleft===3">
+      <div class="tab">
+         <template v-for="layerKey in reverseLayerKeys">
+         <button v-if="!layers[layerKey].hidden?.()"
+         @mousedown="tabs.layer=layerKey" :disabled="tabs.layer===layerKey"
+         v-html="getLayerShortname(layerKey)"></button>
+         </template>
+      </div>
+      <template v-if="currentLayerLayout.P">
+         <div class="bigrow">
+            You have <span style="font-size:40px" v-html="format(getPoint(currentLayer),true)"></span>
+            <span v-html="currentLayerP"></span>
+         </div>
+         <button class="prestige" :class="currentLayerLayout.colors"
+         :disabled="!canPrestige(currentLayer)" @mousedown="delay(prestige,currentLayer)">
+            Reset to gain <span class="big" v-html="formatFloor(getPointGain(currentLayer))"></span>
+            <span v-if="canShowPercent(getPointGain(currentLayer))">
+               <br>{{formatPercent(getPointGain(currentLayer))}}% progress to gain next
+            </span>
+            <span class="tooltip" v-if="currentLayerThings.P.tooltip"
+            v-html="'function'===typeof currentLayerThings.P.tooltip?currentLayerThings.P.tooltip():currentLayerThings.P.tooltip"></span>
+         </button>
+         <br>You have gained {{format(getPointTotal(currentLayer),true)}}
+         {{getThingShortname(currentLayer,'P')}}
+         with {{player.L[currentLayer].r}} resets since higher layer reset.
+         You have spent {{format(player.L[currentLayer].t)}} seconds in this reset.
+      </template>
+      <div v-html="applyExtraTexts(currentLayer)"></div>
+      <template v-if="currentLayerLayout.upgrades">
+         <div class="bold" style="font-size:30px">Upgrades:</div>
+         <div v-for="u1 in currentLayerLayout.upgrades">
+            <template v-for="btn in u1">
+            <button v-if="!currentLayerThings[btn].hidden?.()" class="cell upg"
+            :class="[hasBinaryThing(currentLayer,btn)?'already':'',currentLayerLayout.colors]"
+            :disabled="!canBuyUpgrade(currentLayer,btn)" @mousedown="delay(buyUpgrade,currentLayer,btn)">
+               <span class="bold big" v-html="currentLayerThings[btn].fullname"></span>
+               <span v-html="currentLayerThings[btn].description?.()"></span>
+               <br>Cost: <span v-html="getCostText(currentLayer,btn)"></span>
+               <span class="tooltip" v-if="currentLayerThings[btn].tooltip" v-html="currentLayerThings[btn].tooltip"></span>
+            </button>
+            </template>
+         </div>
+      </template>
+      <template v-if="currentLayerLayout.buyables">
+         <div class="bold" style="font-size:30px">Buyables:</div>
+         <div v-for="b1 in currentLayerLayout.buyables">
+            <div v-for="b2 in b1" class="left"
+            :class="{cellcolumn:b1.length>4,column2:b1.length===2,column3:b1.length===3,column4:b1.length===4}">
+               <template v-for="btn in b2">
+               <button v-if="!currentLayerThings[btn].hidden?.()"
+               class="cell" :class="currentLayerLayout.colors" :disabled="!canBuyBuyable(currentLayer,btn)"
+               @mousedown="delay(buyBuyable,currentLayer,btn)" @dblclick="delay(buymaxBuyable,currentLayer,btn)">
+                  <span class="bold big" v-html="currentLayerThings[btn].fullname"></span>
+                  <span v-html="currentLayerThings[btn].description?.()"></span>
+                  <br>Amount: {{format(getThingAmount(currentLayer,btn),true)}}
+                  <br>× {{format(getComputed(currentLayer,btn+'_mult'))}}
+                  <br>Cost: <span v-html="getCostText(currentLayer,btn)"></span>
+                  <span class="tooltip" v-if="currentLayerThings[btn].tooltip" v-html="currentLayerThings[btn].tooltip"></span>
+               </button>
+               </template>
+            </div>
+         </div>
+      </template>
+      <div v-if="currentLayerLayout.buyableTexts" class="bigrow">
+         <div v-for="btn in currentLayerLayout.buyableTexts" v-html="currentLayerThings[btn].description?.()"></div>
+      </div>
+      <template v-if="currentLayerLayout.challenges">
+         <div class="bold" style="font-size:30px">Challenges:</div>
+         A challenge is a modified game fragment under some penalty conditions,
+         started at a reset of any layer, forced to exit when you reach the layer again (after claiming its reward).<br>
+         <button class="itemrow3" style="font-size:24px;font-weight:bold"
+         :disabled="!getChallengeRunning(currentLayer)[1]" @mousedown="delay(endLayerChallenge,currentLayer)">
+            You can exit a challenge at will
+         </button>
+         <div class="bigrow" v-if="getChallengeRunning(currentLayer)[1]">
+            Currently you are in {{currentLayerThings[getChallengeRunning(currentLayer)[0]].fullname}},
+            triggered by {{getLayerFullname(getChallengeRunning(currentLayer)[2])}}
+         </div>
+         <div class="bigrow">Select a challenge:</div>
+         <div style="display:inline-block;width:630px">
+            <template v-for="btn in currentLayerLayout.challenges">
+            <button class="challenge" v-if="!currentLayerThings[btn].hidden?.()"
+            :class="{already:getChallengeInQueue(currentLayer)[0]===btn}"
+            @mousedown="player.L[currentLayer].c=[btn,currentLayerThings[btn].difficultyMax?queueDifficulty[currentLayer][btn]:1]">
+               <span class="bold big" v-html="currentLayerThings[btn].fullname"></span>
+               <span v-html="currentLayerThings[btn].description?.()"></span>
+               <input v-if="queueDifficulty[currentLayer][btn]" type="range" @mousedown.stop
+               v-model.number="queueDifficulty[currentLayer][btn]" min="1" :max="currentLayerThings[btn].difficultyMax"
+               @input="e=>getChallengeInQueue(currentLayer)[0]===btn&&(player.L[currentLayer].c[1]=+e.target.value)">
+               <span class="tooltip" v-if="currentLayerThings[btn].tooltip"
+               v-html="currentLayerThings[btn].tooltip"></span>
+            </button>
+            </template>
+         </div>
+      </template>
+      <div v-if="currentLayerLayout.challTexts" class="bigrow">
+         <div v-for="btn in currentLayerLayout.challTexts" v-html="currentLayerThings[btn].description?.()"></div>
+      </div>
+      <template v-if="currentLayerLayout.achievements">
+         <div class="bold" style="font-size:30px">Achievements:</div>
+         <table>
+         <tr v-for="a1 in currentLayerLayout.achievements">
+            <td v-for="btn in a1">
+               <div v-if="!currentLayerThings[btn].hidden?.()" class="ach" :class="{achieved:hasBinaryThing(currentLayer,btn)}">
+                  <span v-html="currentLayerThings[btn].fullname"></span>
+                  <span class="tooltip" v-html="currentLayerThings[btn].tooltip"></span>
+               </div>
+            </td>
+         </tr>
+         </table>
+      </template>
+      <div v-if="currentLayerLayout.achiTexts" class="bigrow">
+         <div v-for="btn in currentLayerLayout.achiTexts" v-html="currentLayerThings[btn].description?.()"></div>
+      </div>
+   </template>
+</div>
 <script src="support/notation-support.js"></script>
 <script src="notations/X-Y.js"></script>
 <script src="notations/omega-Y.js"></script>
 <!--Insert more notations here-->
 <script src="support/framework.js"></script>
 <script src="support/method.js"></script>
-</head>
-<body><div id="loading">
-   <br><br>GAME LOADING
-</div>
-<div id="game">
-   <div class="alter" v-for="item in progress_texts">Progress to {{item[0]}}: {{item[1]}}%</div>
-   Your number is <span style="font-size:50px">{{L0P_text}}</span><br>
-   Your number is gaining {{L0P_growth_text}} per second<br>
-   <button style="width:344px">Buy generator for {{L0G_cost_text}}<br>Current amount: {{L0G_amount_text}}</button>
-   <div class="tab0 left">
-      <button @mousedown="current_tab=1" :disabled="current_tab===1">Options</button><br>
-      <button @mousedown="current_tab=2" :disabled="current_tab===2">Automation</button><br>
-      <button @mousedown="current_tab=''" :disabled="typeof current_tab!=='number'">Layers</button>
-   </div>
-   <div class="tab">
-      <button @mousedown="current_tab=''" :disabled="current_tab===''">L1 ~ L1,2</button>
-   </div>
-</div>
-<script>
-;document.getElementById('game').style.minHeight=(window.innerHeight-7)+'px'
-document.body.removeChild(document.getElementById('loading'))
-</script>
+<script src="support/options.js"></script>
+<script src="support/auto.js"></script>
+<script src="layers/bottom.js"></script>
+<script src="layers/good1.js"></script>
+<script src="layers/1.js"></script>
+<!--Insert more layers here-->
+<script src="support/play.js"></script>
 </body>
 </html>
