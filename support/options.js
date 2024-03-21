@@ -10,6 +10,11 @@ var resetRunningParameters = ()=>{
    postChallenge.clear()
    postBuy.clear()
    tabs.layer='1'
+   autobuyerSelected.value=[]
+   autobuyerSelectIndex.value=-1
+   abThingPoolSelected.value=[]
+   autoprestigerSelected.value=[]
+   autoprestigerSelectIndex.value=-1
 }
 ,hardReset = (skipcheck=false)=>{
    if(!(skipcheck||confirm(

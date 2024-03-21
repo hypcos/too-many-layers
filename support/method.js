@@ -165,6 +165,10 @@ var buyUpgrade = (layerKey,thingKey,skipcheck=false)=>{
          Decimal.sub(getThingAmount(single.layer,single.thing),single.cost(ZERO)).max(ZERO))
       else setThingAmount(layerKey,'P',Decimal.sub(getPoint(layerKey),single.cost(ZERO)).max(ZERO))
    })
+   //Special for automations
+   var auto = layers[layerKey].auto
+   auto?.[1]===thingKey&&addAutobuyer(layerKey)
+   auto?.[2]===thingKey&&addAutoprestiger(layerKey)
    applyPostBuy(layerKey,thingKey,ONE,ZERO)
 }
 ,buyBuyable = (layerKey,thingKey,skipcheck=false)=>{

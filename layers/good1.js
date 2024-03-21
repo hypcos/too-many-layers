@@ -3,48 +3,98 @@ layerFactories.push({accept:expr=>expr.length===NOTATION_OFFSET+2&&
    !expr[NOTATION_OFFSET].length&&
    !expr[NOTATION_OFFSET].length,
 output:()=>{
-   /*var getSingleDoublings = (x,[low,high])=>Decimal.lt(x,low)||Decimal.lte(high,x)?0:
-      Decimal.log2(high).sub(Decimal.log2(x)).ceil()
-   ,getDoublings = (x,ranges)=>ranges.map(r=>getSingleDoublings(x,r)).reduce(Decimal.max)
-   var pricePostBuy = (lk,tk,incr,prev)=>{
-      var ranges = []
-      var cur = Decimal.add(prev,incr)
-      getLayerThings(lk)[tk].costs.forEach(single=>ranges.push([single.cost(prev),single.cost(cur)]))
-      ranges = ranges.sort((a,b)=>Decimal.cmp(a[0],b[0]))
-      for(var i=0;i+1<ranges.length;){
-         if(Decimal.lt(ranges[i][1],ranges[i+1][0])){
-            ++i
-            continue
+   var calcSingleSingleDoubling = (singleValue,buyingArraySingle)=>{
+      if(buyingArraySingle[2].lt(singleValue)) return ['none']
+      var starting = buyingArraySingle[1].log2().sub(singleValue.log2()).ceil().max(ZERO)
+      if(buyingArraySingle[0].invCost(singleValue).lte(Number.MAX_SAFE_INTEGER)) for(var i=0;i<9;++i){
+         var raised = TWO.pow(starting.add(i)).mul(singleValue)
+         if(buyingArraySingle[2].lt(singleValue)||
+         !buyingArraySingle[0].cost(buyingArraySingle[0].invCost(raised)).eq(raised)){
+            return i>1?['range',starting,starting.add(i-1)]:i?['discrete',starting]:['discrete']
          }
-         ranges[i][1] = Decimal.max(ranges[i][1],ranges[i+1][1])
-         ranges.splice(i+1,1)
       }
+      if(buyingArraySingle[3]) return ['discrete',starting]
+      var ending = buyingArraySingle[2].log2().sub(singleValue.log2()).floor()
+      if(ending.lt(starting)) return ['discrete']
+      if(ending.eq(starting)) return ['discrete',starting]
+      return ['range',starting,ending]
+   }
+   var calcSingleDoubling = (singleValue,buyingArray,offset)=>{
+      var res = buyingArray.slice(offset).map(buyingArraySingle=>calcSingleSingleDoubling(singleValue,buyingArraySingle))
+      for(var i=0;res[i]?.[0]==='none';++i);
+      res = res.slice(i).filter(x=>x.length>1)
+      return [offset+i].concat(res)
+   }
+   var calcDoubling = (sortedValues,buyingArray)=>{//both must be sorted, buyingArray is sorted using upper bounds
+      var offset=0,i=0,collection=[],res
+      while(i<sortedValues.length){
+         res = calcSingleDoubling(sortedValues[i],buyingArray,offset)
+         offset = res.shift()
+         collection = collection.concat(res)
+         ;++i
+      }
+      collection = collection.sort((a,b)=>a[1].cmp(b[1]))
+      var doubling = ZERO
+      for(i=0;i<collection.length;++i){
+         if(doubling.lt(collection[i][1])) return doubling
+         if(collection[i].length>2) doubling = doubling.max(ONE.add(collection[i][2]))
+         else doubling = doubling.max(ONE.add(collection[i][1]))
+      }
+      return doubling
+   }
+   var pricePostBuy = (lk,tk,incr,prev)=>{
       var doublings = getThingAmount('o1','p')
+      ,buyingCosts = getLayerThings(lk).get(tk).costs
+      ,upperamount = NEGONE.add(incr).add(prev)
+      var hasEqual = (orderSeq1,orderSeq2)=>{
+         var i=orderSeq1.length-1,j=orderSeq2.length-1
+         while(i>=0&&j>=0){
+            var left=orderSeq1[i]
+            var right=orderSeq2[j]
+            if(left.eq(right)) return true
+            if(left.gt(right)) --i
+            else --j
+         }
+         return false
+      }
+      if(upperamount.lte(prev)){
+         var buyingStartings = buyingCosts.map(single=>single.cost(prev)).sort((a,b)=>a.cmp(b))
+         return layerKeys.forEach(layerKey=>{
+            var dl = doublings[layerKey]
+            if(!dl) dl = doublings[layerKey] = {}
+            getLayerThings(layerKey).forEach((thing,thingKey)=>{
+               var costs = thing.costs
+               if(!costs||(layerKey===lk&&thingKey===tk)) return;
+               var amount
+               if(thing.type==='buyable') amount = getBuyable(layerKey,thingKey)
+               else if(thing.type==='upgrade'&&!hasUpgrade(layerKey,thingKey)) amount = ZERO
+               else return;
+               if(!hasEqual(costs.map(single=>single.cost(amount)).sort((a,b)=>a.cmp(b)),buyingStartings)) return;
+               if(!dl[thingKey]) dl[thingKey] = 1
+               else dl[thingKey] = ONE.add(dl[thingKey])
+            })
+         })
+      }
+      var buyingIntervals = buyingCosts.map(single=>{
+         var cost1 = single.cost(prev), cost2 = single.cost(upperamount)
+         return [single,cost1,cost2,cost2.log2().sub(cost1.log2()).gt(NEGONE.add(incr))]
+      }).sort((a,b)=>a[2].cmp(b[2]))
       layerKeys.forEach(layerKey=>{
-         var things = getLayerThings(layerKey)
          var dl = doublings[layerKey]
          if(!dl) dl = doublings[layerKey] = {}
-         for(var thingKey in things){
-            var costs = things[thingKey].costs
-            if(!costs||(layerKey===lk&&thingKey===tk)) continue
-            var amount = getThingAmount(layerKey,thingKey)
-            ,C = costs.map(single=>single.cost(amount)).filter(e=>Decimal.dZero.lt(e))
-            ,d,i
-            for(i=0;i<C.length;){
-               d=getDoublings(C[i],ranges)
-               if(Decimal.dZero.gte(d)){
-                  ++i
-                  continue
-               }
-               if(!dl[thingKey]) dl[thingKey] = d
-               else dl[thingKey] = Decimal.add(dl[thingKey],d)
-               C = costs.map(single=>single.cost(amount)).filter(e=>Decimal.dZero.lt(e))
-               i=0
-            }
-         }
+         getLayerThings(layerKey).forEach((thing,thingKey)=>{
+            var costs = thing.costs
+            if(!costs||thing.hidden?.()||(layerKey===lk&&thingKey===tk)) return;
+            var amount
+            if(thing.type==='buyable') amount = getBuyable(layerKey,thingKey)
+            else if(thing.type==='upgrade'&&!hasUpgrade(layerKey,thingKey)) amount = ZERO
+            else return;
+            var delta = calcDoubling(costs.map(single=>single.cost(amount)).sort((a,b)=>a.cmp(b)),buyingIntervals)
+            if(!dl[thingKey]) dl[thingKey] = delta
+            else dl[thingKey] = delta.add(dl[thingKey])
+         })
       })
-   }*/
-   var pricePostBuy = ()=>endLayerChallenge('o1')//not implemented
+   }
    var myopiaPostBuy = (layerKey,thingKey)=>setThingAmount('o1','m',[layerKey,thingKey])
    var pricePostPrestige = (layerKey)=>{
       var doublings = getThingAmount('o1','p')
@@ -137,14 +187,10 @@ output:()=>{
       }
    })
    extraKeeps.has('o1"C1_reward')||extraKeeps.set('o1"C1_reward',(firing,target)=>{
-      if(!getChallengeCompletion('o1','C1',firing)) return []
-      return Notation.compare(Notation.parse(firing),Notation.parse(target))>0 ? [] : Array.from(getLayerThings(target).keys())
-   })
-   extraKeeps.has('o1"C2_reward')||extraKeeps.set('o1"C2_reward',(firing,target)=>{
-      if(!getChallengeCompletion('o1','C2',firing)) return []
-      var keep = []
-      getLayerThings(target).forEach((thing,thingKey)=>thing.type==='upgrade'&&keep.push(thingKey))
-      return keep
+      var cmp = Notation.compare(Notation.parse(firing),Notation.parse(target))
+      if(!cmp&&getChallengeCompletion('o1','C2',firing)) return Array.from(getLayerThings(target).keys())
+      if(cmp<0&&getChallengeCompletion('o1','C1',firing)) return Array.from(getLayerThings(target).keys())
+      return []
    })
    prePrestige.has('o1"C3_reward')||prePrestige.set('o1"C3_reward',(layerKey)=>{
       if(!getChallengeCompletion('o1','C3',layerKey)) return;
@@ -173,7 +219,7 @@ output:()=>{
             },
             fullname:'Myopia Challenge',
             description:()=>'<br>A generator works normally if it is latest bought, otherwise it works much slower.'+
-               '<br><br>For each layer you have reached: it does not reset productions in itself or higher layers.',
+               '<br><br>For each layer you have reached: it does not reset productions in higher layers.',
             tooltip:'Multiplier above 10 reduces to 10^lg(multiplier)^0.5',
          }],//remember the last bought thing = [layerKey,thingKey]
          ['m',{description:()=>{
@@ -190,19 +236,17 @@ output:()=>{
                if(expr.length>NOTATION_OFFSET+1) return false
                var seq = expr[NOTATION_OFFSET]
                if(!seq.every(e=>e===1)) return false
-               while(seq.length>1){
+               while(seq.length>0){
                   if(getChallengeCompletion('o1','C2',seq.join())<difficulty) return false
                   seq.pop()
                }
                return true
             },
-            assignReject:trigger=>trigger.length<=1,
-            hidden:()=>!player.L['1,1,1'],
             fullname:'Price Challenge',
             description:()=>'<br>When buying anything, other things with equal cost (ignoring unit) double their price.'+
-               '<br><br>For each layer you have reached: it does not reset upgrades.',
+               '<br><br>For each layer you have reached: it does not reset its productions.',
             tooltip:'When a layer gets reset, the penalty of everything in it also resets'+
-               '<br>Not suitable for layer 1',
+               '<br>Due to inaccurate implement, buying something with amount 1e15 or higher may cause more penalty',
          }],//remember price doublings for each upgrade/buyable (p[layerKey][thingKey])
          ['p',{description:()=>{
             var keys = Object.keys(getThingAmount('o1','C2'))

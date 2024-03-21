@@ -32,14 +32,13 @@ output:expr=>{
                (C4===50 ? ' / 10' : ' / 10^'+n+(C4? '^'+format((1-C4*.02)**4) :''))
             }) : 'Gain formula: (number)^0.5 / 10',
          }],
-         ['P_effect',{type:'computed',calc:()=>ONE.add(getPoint(layerKey)).pow(.25)}],
+         ['P_effect',{type:'computed',calc:()=>ONE.add(getPoint(layerKey)).sqrt().sqrt()}],
          ['U0',{
             type:'upgrade',
             costs:[{
                cost:()=>TWO.pow(getThingAmount('o1','p')?.[layerKey]?.U0||ZERO).mul(3),
                invCost:()=>ZERO,
             }],
-            effect:(has)=>has&&addAutobuyer(layerKey),
             shortname:'U11',
             description:n>1?(()=>'Autobuyer for '+Notation.displayShort(prevExpr)):(()=>'Autobuyer for number generator'),
          }],
@@ -49,7 +48,6 @@ output:expr=>{
                cost:()=>TWO.pow(getThingAmount('o1','p')?.[layerKey]?.U1||ZERO).mul(14),
                invCost:()=>ZERO,
             }],
-            effect:(has)=>has&&addAutoprestiger(layerKey),
             shortname:'U12',
             description:()=>'Autoreset for '+Notation.displayShort(prevExpr),
          }:{

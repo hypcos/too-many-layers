@@ -18,14 +18,10 @@ var addAutobuyer = layerKey=>{
    var expr = Notation.parse(layerKey)
    var lower = player.A.map((x,i)=>[Notation.parse(x[0]),i])
    .reduce((p,e)=>Notation.compare(e[0],expr)>0?p:Notation.compare(p[0],e[0])>0?p:e,[[],-1])
-   var item
    if(~lower[1]){
-      item = JSON.parse(JSON.stringify(player.A[lower[1]]))
-      item[0] = layerKey
-      player.A.splice(lower[1]+1,0,item)
+      player.A.splice(lower[1]+1,0,[layerKey,1,player.A[lower[1]][2],[]])
    }else{
-      item = [layerKey,1,0,[]]
-      player.A.push(item)
+      player.A.push([layerKey,1,0,[]])
    }
 }
 var addAutoprestiger = layerKey=>{
@@ -48,18 +44,26 @@ var autoBuyOn = (layerKey,ratio=0,priors=[])=>{
    var things = getLayerThings(layerKey)
    priors.forEach((thingKey)=>{
       switch(things.get(thingKey)?.type){
-      case 'upgrade': return hasUpgrade(layerKey,thingKey)||buyUpgrade(layerKey,thingKey)
+      case 'upgrade': return buyUpgrade(layerKey,thingKey)
       case 'buyable': return getBuyable(layerKey,thingKey)||buyBuyable(layerKey,thingKey)
       }
    })
    var pointKept = Decimal.mul(getPointTotal(layerKey),ratio)
+   var counts = 0, list = []
    things.forEach((thing,key)=>{
+      switch(thing.type){
+      case 'buyable':
+         ++counts
+      case 'upgrade':
+         list.push([thing.type,key])
+      }
+   })
+   list.forEach(([type,thingKey])=>{
       var availPoint = Decimal.sub(getPoint(layerKey),pointKept)
       if(availPoint.lt(ZERO)) return;
-      switch(thing.type){
-      case 'upgrade': return canBuyUpgrade(layerKey,key,availPoint)&&buyUpgrade(layerKey,key)
-      case 'buyable': return buymaxBuyable(layerKey,key,availPoint)
-      }
+      if(type==='upgrade') return canBuyUpgrade(layerKey,thingKey,availPoint)&&buyUpgrade(layerKey,thingKey)
+      buymaxBuyable(layerKey,thingKey,availPoint.div(counts))
+      ;--counts
    })
 }
 var executeSingleAutobuyer = item=>{

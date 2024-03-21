@@ -147,8 +147,8 @@ var layerFactories = []
          :(()=>''+getThingAmount(layerKey,thingKey))
       ,thing.effect)))
    )
-   !autobuyerPool.has(layerKey)&&player.A.find(x=>x[0]===layerKey)&&autobuyerPool.add(layerKey)
-   !autoprestigerPool.has(layerKey)&&player.a.find(x=>x[0]===layerKey)&&autoprestigerPool.add(layerKey)
+   !autobuyerPool.has(layerKey)&&player.A.some(x=>x[0]===layerKey)&&autobuyerPool.add(layerKey)
+   !autoprestigerPool.has(layerKey)&&player.a.some(x=>x[0]===layerKey)&&autoprestigerPool.add(layerKey)
 }
 ,addLayersAbove = (layerKey)=>{
    var idx = layerKeys.indexOf(layerKey)
@@ -158,7 +158,7 @@ var layerFactories = []
       var factory = layerFactories.find(e=>e.accept(expr))
       if(!factory) return;
       var l = Notation.invParse(expr)
-      player.L[l] = layerDataDefault(l, layers[l] = factory.output(expr))
+      updateLayerInfo(l)
       layerKeys.splice(idx,0,l)
       applyPostNewLayer(l)
    })
