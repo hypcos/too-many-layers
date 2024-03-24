@@ -35,6 +35,7 @@ var resetRunningParameters = ()=>{
    }catch(e){return;}
    if(!data) return;
    var milliseconds = Date.now()-data.t
+   data.t = Date.now()
    if(!(milliseconds>=0)) return;
    resetRunningParameters()
    resumeLayersInfo(data.L)
@@ -53,6 +54,7 @@ var resetRunningParameters = ()=>{
    }catch(e){return;}
    if(!data) return;
    var milliseconds = Date.now()-data.t
+   data.t = Date.now()
    if(!(milliseconds>=0)) return;
    resetRunningParameters()
    resumeLayersInfo(data.L)
