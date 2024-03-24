@@ -8,12 +8,18 @@ var root,game
    currentLayerThings.value.P.description():
    currentLayerThings.value.P.description)
 )
+,clickChallenge = (btn)=>{
+   var old_c = player.L[currentLayer.value].c
+   if(old_c[0]===btn) player.L[currentLayer.value].c = ['',0]
+   else player.L[currentLayer.value].c=[btn,currentLayerThings.value[btn].difficultyMax?queueDifficulty[currentLayer.value][btn]:1]
+}
 hardReset(true)
 game = Vue.createApp({setup(){return{
    currentLayer,
    currentLayerLayout,
    currentLayerThings,
    currentLayerP,
+   clickChallenge,
    player,
    layerKeys,
    layers,
@@ -106,6 +112,7 @@ window.addEventListener('keydown',e=>{
       }
       switch(k){
       case ' ':case 'Spacebar':
+         e.preventDefault()
          return tabs.topleft===3&&canPrestige(currentLayer.value)&&delay(prestige,currentLayer.value)
       case 'b':case 'B':
          return tabs.topleft===3&&delay(buymaxLayer,currentLayer.value)

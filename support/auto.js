@@ -137,8 +137,7 @@ var executeAutoprestigers = ()=>{
    ,target,flag
    for(i=0;i<len;++i){
       item=items[i]
-      if(!item[1]||!hasAutoprestiger(item[0])) continue
-      //handle ending of mode 2~3
+      //handle ending of mode 2~5
       for(r=0;r<remembered.length;){
          working = remembered[r]
          if(working[2]===item[0]){
@@ -147,26 +146,26 @@ var executeAutoprestigers = ()=>{
          }
          else ++r
       }
+      if(!item[1]||!hasAutoprestiger(item[0])) continue
       if(remembered.some(working=>!working[3])) continue
       //is this above/below trigger?
       flag = (target=getTriggered(item))!==undefined
       if(flag){
          if(!item[2]) return prestige(target)
-         var gainmult = getPointGain(target).div(getPointTotal(target))
          for(r=0;r<remembered.length;){
             working = remembered[r]
             if(working[0]===1) remembered.splice(r,1)
-            else if(getPointGain(working[1]).div(getPointTotal(working[1])).lt(gainmult)){
+            else if(getPointGain(working[1]).mul(getPointTotal(target)).lt(getPointGain(target).mul(getPointTotal(working[1])))){
                remembered.splice(r,1)
             }else ++r
          }
       }else{
          for(r=0;r<remembered.length;++r){
             working = remembered[r]
-            if(working[0]!==2&&working[3]) return prestige(working[1])
+            if((working[0]&1)&&working[3]) return prestige(working[1])
          }
       }
-      if(item[2]) remembered.push([item[2],target,item[3],flag])
+      if(item[2]&&(item[2]<=3||flag)) remembered.push([item[2],target,item[3],flag])
    }
    remembered.some(working=>{
       if(!working[3]) return false
@@ -186,6 +185,8 @@ var executeAutoprestigers = ()=>{
  *    1=fire if next item below trigger; if this below trigger then skip to another item
  *    2=compare multiplier until another item (if this is biggest then fire); if this below trigger then skip to the "another item"
  *    3=compare multiplier until another item or a failed item; if this below trigger then skip to the "another item"
+ *    4=compare multiplier until another item (if this is biggest then fire); below trigger - just go next item
+ *    5=compare multiplier until another item or a failed item; below trigger - just go next item
  * autoprestige[3]: the "another item" of mode 1~3
  * autoprestige[4] bit0: trigger condition formula (each lg should be x=>lg(1+x))
  *    formula 0: (2 inputs, 4 param) left >= a0 + a1*right + a2*lg(right) + a3*right*lg(right)

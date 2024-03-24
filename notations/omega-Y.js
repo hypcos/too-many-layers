@@ -402,7 +402,7 @@
          if(seq[seq.length-1]===1) return seq.slice(0,seq.length-1)
          var val = dataActual.get(datakey+'"'+FSterm)
          if(val!==undefined) return val
-         dataActual.set(datakey+'"'+FSterm,val = strong_magma(seq,FSterm))
+         dataActual.set(datakey+'"'+FSterm,val = actual_magma(seq,FSterm))
          return val
       },
       layerPrefix:'good ',
@@ -418,7 +418,7 @@
          if(seq[seq.length-1]===1) return seq.slice(0,seq.length-1)
          var val = dataMedium.get(datakey+'"'+FSterm)
          if(val!==undefined) return val
-         dataMedium.set(datakey+'"'+FSterm,val = strong_magma(seq,FSterm))
+         dataMedium.set(datakey+'"'+FSterm,val = medium_magma(seq,FSterm))
          return val
       },
       layerPrefix:'great ',
@@ -434,7 +434,7 @@
          if(seq[seq.length-1]===1) return seq.slice(0,seq.length-1)
          var val = dataWeak.get(datakey+'"'+FSterm)
          if(val!==undefined) return val
-         dataWeak.set(datakey+'"'+FSterm,val = strong_magma(seq,FSterm))
+         dataWeak.set(datakey+'"'+FSterm,val = weak_magma(seq,FSterm))
          return val
       },
       layerPrefix:'grand ',

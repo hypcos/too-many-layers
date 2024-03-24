@@ -57,7 +57,7 @@ var getLayerThings = layerKey=>layers[layerKey]?.things||new Map()
 ,getChallengeCompletion = (layerKey,thingKey,targetLayerKey)=>player.L[layerKey]?.a[thingKey]?.[targetLayerKey]||0
 ,getComputed = (layerKey,thingKey)=>{
    var key=layerKey+'"'+thingKey
-   if(hasComputed.has(key)) return computed[key]||ONE
+   if(hasComputed.has(key)) return computed[key]
    else{
       hasComputed.add(key)
       var calc = getLayerThings(layerKey).get(thingKey)?.calc
@@ -114,14 +114,16 @@ var resetThing = (layerKey,thingKey)=>{
 }
 ,resetProduction = (layerKey,thingKey)=>getLayerThings(layerKey).get(thingKey)?.type==='produced'&&setThingAmount(layerKey,thingKey,0,true)
 ,resetLayerProduction = (layerKey,keeps=[])=>{
+   var keep = new Set(keeps)
+   if(keep.has('everything')) return;
    var things = getLayerThings(layerKey)
    //if(!things) return;
    var a = player.L[layerKey].a
    //if(!a) return player.L[layerKey] = layerDataDefault(layerKey)
-   var keep = new Set(keeps)
    things.forEach((thing,key)=>thing.type==='produced'&&!keep.has(key)&&(a[key] = 0))
 }
 ,resetLayer = (layerKey,keeps=[])=>{
+   if(keeps.includes('everything')) return player.L[layerKey].t = 0
    var things = getLayerThings(layerKey)
    //if(!things) return;
    var layer_data = player.L[layerKey]

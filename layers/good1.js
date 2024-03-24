@@ -1,7 +1,27 @@
+var pricePenalty = (layerKey,thingKey)=>{
+   var x = getThingAmount('o1','p')?.[layerKey]?.[thingKey]||ZERO
+   return Decimal.lt(x,1024)?new Decimal(2**x):TWO.pow(x).round()
+}
+,invPricePenalty = (layerKey,thingKey)=>{
+   var x = getThingAmount('o1','p')?.[layerKey]?.[thingKey]||ZERO
+   return Decimal.lt(x,1024)?new Decimal(0.5**x):HALF.pow(x)
+}
+,applyMyopiaPenalty = (layerKey,thingKey,mult)=>{
+   if(!getChallengeDifficulty('o1','C1')) return mult
+   var m = getThingAmount('o1','m')
+   if(m[0]===layerKey&&m[1]===thingKey) return mult
+   if(TEN.lt(mult)) return mult.log10().sqrt().pow10()
+   return mult
+}
+,antimatterPenalty = ()=>getChallengeDifficulty('o1','C3')?getComputed('o1','a_mult')||ONE:ONE
+,taxPenalty = layerKey=>getChallengeDifficulty('o1','C4')?
+   Decimal.pow(0.95,2.054079717745686**(getChallengeDifficulty('o1','C4')-1)*(getThingAmount('o1','t')?.[layerKey]||0))
+   :ONE
+var antimatter_temp = new Map()
 layerFactories.push({accept:expr=>expr.length===NOTATION_OFFSET+2&&
    expr[NOTATION_OFFSET+1]+''==='1'&&
    !expr[NOTATION_OFFSET].length&&
-   !expr[NOTATION_OFFSET].length,
+   !expr[0].length,
 output:()=>{
    var calcSingleSingleDoubling = (singleValue,buyingArraySingle)=>{
       if(buyingArraySingle[2].lt(singleValue)) return ['none']
@@ -9,7 +29,7 @@ output:()=>{
       if(buyingArraySingle[0].invCost(singleValue).lte(Number.MAX_SAFE_INTEGER)) for(var i=0;i<9;++i){
          var raised = TWO.pow(starting.add(i)).mul(singleValue)
          if(buyingArraySingle[2].lt(singleValue)||
-         !buyingArraySingle[0].cost(buyingArraySingle[0].invCost(raised)).eq(raised)){
+         !buyingArraySingle[0].cost(buyingArraySingle[0].invCost(raised)).eq_tolerance(raised,7.5e-15)){
             return i>1?['range',starting,starting.add(i-1)]:i?['discrete',starting]:['discrete']
          }
       }
@@ -51,7 +71,7 @@ output:()=>{
          while(i>=0&&j>=0){
             var left=orderSeq1[i]
             var right=orderSeq2[j]
-            if(left.eq(right)) return true
+            if(left.eq_tolerance(right,7.5e-15)) return true
             if(left.gt(right)) --i
             else --j
          }
@@ -186,20 +206,12 @@ output:()=>{
          break
       }
    })
-   extraKeeps.has('o1"C1_reward')||extraKeeps.set('o1"C1_reward',(firing,target)=>{
+   extraKeeps.has('o1"reward')||extraKeeps.set('o1"reward',(firing,target)=>{
       var cmp = Notation.compare(Notation.parse(firing),Notation.parse(target))
-      if(!cmp&&getChallengeCompletion('o1','C2',firing)) return Array.from(getLayerThings(target).keys())
-      if(cmp<0&&getChallengeCompletion('o1','C1',firing)) return Array.from(getLayerThings(target).keys())
+      if(!cmp&&getChallengeCompletion('o1','C2',firing)) return ['everything']
+      if(cmp<0&&getChallengeCompletion('o1','C1',firing)) return ['everything']
+      if(getChallengeCompletion('o1','C3',firing)) return layers[target]?.auto?.slice?.(1)||[]
       return []
-   })
-   prePrestige.has('o1"C3_reward')||prePrestige.set('o1"C3_reward',(layerKey)=>{
-      if(!getChallengeCompletion('o1','C3',layerKey)) return;
-      layerKeys.slice(layerKeys.indexOf(layerKey)+1,-1)
-      .forEach(l=>antimatter_temp.set(l,ONE.add(getPointGain(l)).add(getPoint(l)).log10().floor()))
-   })
-   postPrestige.has('o1"C3_reward')||postPrestige.set('o1"C3_reward',()=>{
-      antimatter_temp.forEach((value,l)=>ZERO.lt(value)&&(setThingAmount(l,'P',value),setThingAmount(l,'',value)))
-      antimatter_temp.clear()
    })
    return {
       things:new Map([
@@ -246,7 +258,7 @@ output:()=>{
             description:()=>'<br>When buying anything, other things with equal cost (ignoring unit) double their price.'+
                '<br><br>For each layer you have reached: it does not reset its productions.',
             tooltip:'When a layer gets reset, the penalty of everything in it also resets'+
-               '<br>Due to inaccurate implement, buying something with amount 1e15 or higher may cause more penalty',
+               '<br>Due to inaccurate implement, buying something with amount 1e14 or higher may cause more penalty',
          }],//remember price doublings for each upgrade/buyable (p[layerKey][thingKey])
          ['p',{description:()=>{
             var keys = Object.keys(getThingAmount('o1','C2'))
@@ -273,9 +285,8 @@ output:()=>{
             fullname:'Antimatter Challenge',
             description:()=>'<br>Each layer has antimatter. '+
                'Antimatter grows depending on how fast point gained in previous reset, and divides all productions.'+
-               '<br><br>For each layer you have reached: when it resets, lower layers keep some points.',
+               '<br><br>For each layer you have reached: it does not reset automation.',
             tooltip:'Antimatter/min = (points/s gained in previous reset)^0.5'+
-               '<br>Points after reset = lg(1+(points before reset))'+
                '<br>Not suitable for layer 1',
          }],//remember antimatter/sec for each layer
          ['a',{description:()=>{
@@ -315,7 +326,7 @@ output:()=>{
             description:()=>{
                var d = queueDifficulty.o1?.C4||1
                ,eff = Decimal.pow(0.95,Decimal.pow(2.054079717745686,NEGONE.add(d)))
-               return '<br>When reset, each layer gets a penalty that '+
+               return '<br>When any layer resets, each layer '+
                (eff.lt(.1) ? 'divides point gain by '+format(eff.recip())
                : 'decreases point gain by '+format(ONE.sub(eff).mul(100))+'%')+
                '.<br><br>For each layer you have reached: improve point gain formula.'
@@ -338,4 +349,3 @@ output:()=>{
       hidden:()=>!hasUpgrade('1','U1'),
    }
 }})
-var antimatter_temp = new Map()

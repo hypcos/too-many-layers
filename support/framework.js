@@ -1,8 +1,9 @@
 var NOTATION_OFFSET = 1
 var Notation = saladProduct(NOTATION_OFFSET,...sequences)
+var parNotations = sequences.map((e,i)=>saladProduct(0,...sequences.slice(i).concat(sequences.slice(0,i))))
 var INIT_EXPRS = [ [[],[],[1]], [[],[1]], [] ]
 var getNextExpressions = (expr,upper=[Infinity],ignoreLower=NOTATION_OFFSET)=>{
-   var parNotation = saladProduct(0,...sequences.slice(ignoreLower).concat(sequences.slice(0,ignoreLower)))
+   var parNotation = parNotations[ignoreLower%sequences.length]
    var higher = upper+''==='Infinity'?upper:upper.slice(ignoreLower)
    var terms = getBetween(expr.slice(ignoreLower),higher,parNotation.FS,parNotation.compare,parNotation.isLimit,parNotation.decrement)
    if(!terms.length) return []
@@ -162,6 +163,7 @@ var layerFactories = []
       layerKeys.splice(idx,0,l)
       applyPostNewLayer(l)
    })
+   layerKeys.sort((a,b)=>-Notation.compare(Notation.parse(a),Notation.parse(b)))
 }
 ,initSingleLayer = expr=>{
    var factory = layerFactories.find(e=>e.accept(expr))
@@ -240,19 +242,36 @@ var lastSave = Date.now()
 })
 ,progressTexts = Vue.reactive([])
 ,updateProgressTexts = ()=>{
-   var target=player.p,i=0,len
+   var target=player.p,i=0,len,remembered,challenges
    if(target) do{
       len=layerKeys.length
       i=0
+      remembered=[]
+      challenges=new Set()
       layerKeys.slice(0,-1).some(layerKey=>{
+         var C = getChallengeRunning(layerKey)
+         if(C[0]) challenges.add(C[2])
          if(layers[layerKey].hidden?.()) return false
-         var prog = getPointGain(layerKey).add(getPointTotal(layerKey))
-         if(ONE.lte(prog)||ZERO.gte(prog)) return false
-         progressTexts[i] = [Notation.display(Notation.parse(layerKey)),formatPercent(prog)]
-         return ++i>=target
+         if((C=challenges.has(layerKey))||
+            !(remembered.length&&
+            isNormalLayer(layerKey)&&isNormalLayer(remembered[0][0])&&
+            isNextLayer(layerKey,remembered[0][0])
+         )) remembered=[]
+         var gain = getPointGain(layerKey)
+         var prog = gain.add(getPointTotal(layerKey))
+         var toohigh = ONE.lte(C?gain:prog)
+         var toolow = ZERO.gte(prog)
+         if(toohigh||toolow) return (remembered.unshift([layerKey,toohigh,toolow]),false)
+         if(remembered.every(x=>!x[1])){
+            if(remembered.length) --i
+            progressTexts[i] = [Notation.display(Notation.parse(layerKey)),formatPercent(C?gain:prog)]
+            ++i
+         }
+         remembered.unshift([layerKey,toohigh,toolow])
+         return i>target
       })
    }while(layerKeys.length!==len);
-   progressTexts.splice(i)
+   progressTexts.splice(Math.min(i,target))
 }
 /*computed numbers; access a number via computed[layerKey+'"'+thingKey]; computed[layerKey+'"P'] is calculated point gain*/
 var computed = Vue.reactive({})
@@ -260,6 +279,15 @@ var computed = Vue.reactive({})
 var watchers = new Map()
 /*methods*/
 var delay = (f,...args)=>setTimeout(f,0,...args)
+,isNormalLayer = layerKey=>Notation.parse(layerKey).slice(0,NOTATION_OFFSET).every(e=>!e.length)
+,isNextLayer = (lowKey,highKey)=>{
+   var parNotation = parNotations[NOTATION_OFFSET]
+   var a=Notation.parse(lowKey),b=Notation.parse(highKey)
+   if(Notation.compare(a,b)>0) [a,b] = [b,a]
+   a = a.slice(NOTATION_OFFSET)
+   b = b.slice(NOTATION_OFFSET)
+   return !parNotation.compare(parNotation.increment(a),b)
+}
 ,runProduction = dt=>layerKeys.forEach(layerKey=>{
    player.L[layerKey].t += dt
    typeof layers[layerKey].production==='function'&&layers[layerKey].production(dt)

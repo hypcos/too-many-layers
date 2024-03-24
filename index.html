@@ -22,7 +22,7 @@
       Current amount: {{format(getThingAmount('','G'),true)}}
       <span class="tooltip" v-html="getLayerThings('').get('G').tooltip"></span>
    </button>
-   <br>Your number is gaining {{format(getComputed('','P_speed'))}} per second
+   <br>Your number is gaining {{format(getComputed('','P_speed')||0)}} per second
    <div v-if="offlineTime">Offline time progressing: {{format(offlineTime)}} seconds</div>
    <div class="tab0 left">
       <button @mousedown="tabs.topleft=1" :disabled="tabs.topleft===1">Options</button><br>
@@ -96,7 +96,7 @@
       </div>
       <div class="autos" v-if="tabs.autos===0">
          <div class="column3">
-            <select style="width:99%" size="25" :value="autobuyerSelected">
+            <select style="width:99%" size="21" :value="autobuyerSelected">
                <option v-for="(item,i) in player.A" :class="{red:!item[1]||!hasAutobuyer(item[0])}" :value="item"
                @mousedown="autobuyerSelected=item,autobuyerSelectIndex=i,abThingPoolSelected=[]">
                {{getLayerFullname(item[0])}}</option>
@@ -137,7 +137,7 @@
                   (autobuyerSelected[3].includes(abThingPoolSelected[0])||autobuyerSelected[3].push(abThingPoolSelected[0]))">
                      Add prior thing
                   </button><br>
-                  <select style="width:80%" size="17" :value="abThingPoolSelected">
+                  <select style="width:80%" size="13" :value="abThingPoolSelected">
                      <option v-for="pair in abThingPool" :value="pair"
                      @mousedown="abThingPoolSelected=pair">
                      {{getThingFullname(abCurrentWorking,pair[0])}}</option>
@@ -145,7 +145,7 @@
                </div>
                <div class="column2">
                   <button @mousedown="autobuyerSelected[3].splice(0)">Remove all</button><br>
-                  <select style="width:80%" size="17">
+                  <select style="width:80%" size="13">
                      <option v-for="(thingkey,i) in autobuyerSelected[3]" :value="thingkey">
                      {{getThingFullname(abCurrentWorking,thingkey)}}</option>
                   </select>
@@ -156,7 +156,7 @@
       </div>
       <div class="autos" v-if="tabs.autos===1">
          <div class="column3">
-            <select style="width:99%" size="25" :value="autoprestigerSelected">
+            <select style="width:99%" size="21" :value="autoprestigerSelected">
                <option v-for="(item,i) in player.a" :class="{red:!item[1]||!hasAutoprestiger(item[0])}" :value="item"
                @mousedown="autoprestigerSelected=item,autoprestigerSelectIndex=i,update_apInputs()">
                {{getLayerFullname(item[0])}}</option>
@@ -249,9 +249,9 @@
                </span>
             </div>
             <div class="bigrow">
-               <button class="switchy" @mousedown="autoprestigerSelected[2]=(autoprestigerSelected[2]+1)%4">
-                  Prioritization mode
-               </button><br>
+               <button class="switchy" @mousedown="autoprestigerSelected[2]=(autoprestigerSelected[2]+5)%6">&lt;</button>
+               Prioritization mode
+               <button class="switchy" @mousedown="autoprestigerSelected[2]=(autoprestigerSelected[2]+1)%6">&gt;</button><br>
                <span v-if="autoprestigerSelected[2]===0">
                   Autoreset immediately fires once it reaches the threshold.
                </span>
@@ -283,6 +283,24 @@
                   </select><br>
                   (selecting itself or a high-priority autoreset, this one will compare everything below)
                   <br>If threshold unreached, ignore the autoresets until the one bought in that layer.
+               </span>
+               <span v-else-if="autoprestigerSelected[2]===4">
+                  If threshold reached, the autoreset fires only if it makes bigger point gain multiplier than lower-priority autoresets.
+                  <br>The comparison ends at the autoreset bought in
+                  <select v-model="autoprestigerSelected[3]">
+                     <option v-for="item in player.a" :value="item[0]">
+                     {{getLayerShortname(item[0])}}</option>
+                  </select><br>
+                  (selecting itself or a high-priority autoreset, this one will compare everything below)
+               </span>
+               <span v-else-if="autoprestigerSelected[2]===5">
+                  If threshold reached, the autoreset fires only if it makes bigger point gain multiplier than lower-priority autoresets.
+                  <br>The comparison ends at any autoreset with threshold unreached or the autoreset bought in
+                  <select v-model="autoprestigerSelected[3]">
+                     <option v-for="item in player.a" :value="item[0]">
+                     {{getLayerShortname(item[0])}}</option>
+                  </select><br>
+                  (selecting itself or a high-priority autoreset, this one will compare everything below)
                </span>
             </div>
             The prioritization modes will see Off or not-yet-bought autoresets as if they don't exist on the list.
@@ -345,7 +363,9 @@
                   <span class="bold big" v-html="currentLayerThings[btn].fullname"></span>
                   <span v-html="currentLayerThings[btn].description?.()"></span>
                   <br>Amount: {{format(getThingAmount(currentLayer,btn),true)}}
-                  <br>× {{format(getComputed(currentLayer,btn+'_mult'))}}
+                  <span v-if="currentLayerThings[btn+'_mult']">
+                     <br>× {{format(getComputed(currentLayer,btn+'_mult')||1)}}
+                  </span>
                   <br>Cost: <span v-html="getCostText(currentLayer,btn)"></span>
                   <span class="tooltip" v-if="currentLayerThings[btn].tooltip" v-html="currentLayerThings[btn].tooltip"></span>
                </button>
@@ -372,8 +392,7 @@
          <div style="display:inline-block;width:630px">
             <template v-for="btn in currentLayerLayout.challenges">
             <button class="challenge" v-if="!currentLayerThings[btn].hidden?.()"
-            :class="{already:getChallengeInQueue(currentLayer)[0]===btn}"
-            @mousedown="player.L[currentLayer].c=[btn,currentLayerThings[btn].difficultyMax?queueDifficulty[currentLayer][btn]:1]">
+            :class="{already:getChallengeInQueue(currentLayer)[0]===btn}" @mousedown="clickChallenge(btn)">
                <span class="bold big" v-html="currentLayerThings[btn].fullname"></span>
                <span v-html="currentLayerThings[btn].description?.()"></span>
                <input v-if="queueDifficulty[currentLayer][btn]" type="range" @mousedown.stop
