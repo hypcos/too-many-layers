@@ -67,7 +67,7 @@ output:expr=>{
          invCost:()=>ZERO,
       }],
       shortname:'U1'+Math.min(n+2,8),
-      description:()=>Notation.displayShort(prevExprs[1])+' energy slightly boosts '+Notation.displayShort(expr)+'P gain'+
+      description:()=>Notation.displayShort(prevExprs[1])+' energy affects '+Notation.displayShort(expr)+'P gain'+
       '<br>Currently: ×'+format(TEN.add(getThingAmount(prevKeys[1],'E0')).log10()),
       tooltip:'Formula: lg(10+X)',
    },192])

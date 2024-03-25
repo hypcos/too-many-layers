@@ -2,12 +2,6 @@ var root,game
 ,currentLayer = Vue.computed(()=>tabs.layer)
 ,currentLayerLayout = Vue.computed(()=>layers[currentLayer.value].layout||{})
 ,currentLayerThings = Vue.computed(()=>Object.fromEntries(getLayerThings(currentLayer.value)))
-,currentLayerP = Vue.computed(()=>' '+
-   (currentLayerThings.value.P.fullname||Notation.display(Notation.parse(currentLayer.value))+' points')+
-   (typeof currentLayerThings.value.P.description==='function'?
-   currentLayerThings.value.P.description():
-   currentLayerThings.value.P.description)
-)
 ,clickChallenge = (btn)=>{
    var old_c = player.L[currentLayer.value].c
    if(old_c[0]===btn) player.L[currentLayer.value].c = ['',0]
@@ -18,7 +12,7 @@ game = Vue.createApp({setup(){return{
    currentLayer,
    currentLayerLayout,
    currentLayerThings,
-   currentLayerP,
+   displaykey:layerKey=>Notation.display(Notation.parse(layerKey)),
    clickChallenge,
    player,
    layerKeys,

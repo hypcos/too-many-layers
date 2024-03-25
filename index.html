@@ -319,7 +319,9 @@
       <template v-if="currentLayerLayout.P">
          <div class="bigrow">
             You have <span style="font-size:40px" v-html="format(getPoint(currentLayer),true)"></span>
-            <span v-html="currentLayerP"></span>
+            {{currentLayerThings.P.fullname||displaykey(currentLayer)+' points'}}
+            <span v-if="typeof currentLayerThings.P.description==='function'" v-html="currentLayerThings.P.description()"></span>
+            <span v-else v-html="currentLayerThings.P.description"></span>
          </div>
          <button class="prestige" :class="currentLayerLayout.colors"
          :disabled="!canPrestige(currentLayer)" @mousedown="delay(prestige,currentLayer)">
