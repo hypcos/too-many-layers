@@ -14,9 +14,12 @@ var pricePenalty = (layerKey,thingKey)=>{
    return mult
 }
 ,antimatterPenalty = ()=>getChallengeDifficulty('o1','C3')?getComputed('o1','a_mult')||ONE:ONE
-,taxPenalty = layerKey=>getChallengeDifficulty('o1','C4')?
-   Decimal.pow(0.95,2.054079717745686**(getChallengeDifficulty('o1','C4')-1)*(getThingAmount('o1','t')?.[layerKey]||0))
-   :ONE
+,taxPenalty = layerKey=>{
+   var d=getChallengeDifficulty('o1','C4')
+   if(d) return Decimal.pow(1-scaleTax(d,1e5),getThingAmount('o1','t')?.[layerKey]||ZERO)
+   else return ONE
+}
+var scaleTax = (d,range)=>(range**(d*.02)-1)/(range-1)
 var antimatter_temp = new Map()
 layerFactories.push({accept:expr=>expr.length===NOTATION_OFFSET+2&&
    expr[NOTATION_OFFSET+1]+''==='1'&&
@@ -140,10 +143,9 @@ output:()=>{
       ' antimatter (+ '+format(speed)+'/s) in this layer'
    }
    var taxText = (layerKey)=>{
-      var eff = Decimal.pow(0.95,Decimal.pow(2.054079717745686,NEGONE.add(getChallengeDifficulty('o1','C4')))
-      .mul(getThingAmount('o1','t')?.[layerKey]||0))
+      var eff = Decimal.pow(1-scaleTax(getChallengeDifficulty('o1','C4'),1e5),getThingAmount('o1','t')?.[layerKey]||0)
       return 'Tax Challenge: your reset gain of this layer is '+
-      (eff.lt(.1) ? 'divided by '+format(eff.recip()) : 'decreased by '+format(ONE.sub(eff).mul(100))+'%')
+      (eff.eq(ZERO)? 'zero' : eff.lt(.1) ? 'divided by '+format(eff.recip()) : 'decreased by '+format(ONE.sub(eff).mul(100))+'%')
    }
    switch(getChallengeRunning('o1')[0]){
    case 'C1':
@@ -325,10 +327,9 @@ output:()=>{
             fullname:'Tax Challenge',
             description:()=>{
                var d = queueDifficulty.o1?.C4||1
-               ,eff = Decimal.pow(0.95,Decimal.pow(2.054079717745686,NEGONE.add(d)))
+               ,eff = scaleTax(d,1e5)
                return '<br>When any layer resets, each layer '+
-               (eff.lt(.1) ? 'divides point gain by '+format(eff.recip())
-               : 'decreases point gain by '+format(ONE.sub(eff).mul(100))+'%')+
+               ('decreases point gain by '+format(eff*100)+'%')+
                '.<br><br>For each layer you have reached: improve point gain formula.'
             },
             tooltip:'When a layer gets reset, its penalty also resets'+
@@ -338,7 +339,11 @@ output:()=>{
             var keys = Object.keys(getThingAmount('o1','C4'))
             if(!keys.length) return ''
             return 'You completed Tax Challenge for: '+ keys.sort((a,b)=>Notation.compare(Notation.parse(a),Notation.parse(b)))
-               .map(layerKey=>getLayerShortname(layerKey)+' ('+getChallengeCompletion('o1','C4',layerKey)+'/50)').join(' and ')
+               .map(layerKey=>{
+                  var d = getChallengeCompletion('o1','C4',layerKey)
+                  return getLayerShortname(layerKey)+
+                  (d===50?'':' ('+getChallengeCompletion('o1','C4',layerKey)+'/50)')
+               }).join(' and ')
          }}],
       ]),
       layout:{

@@ -15,10 +15,8 @@ output:expr=>{
    point = [['P',{
       Pmode:'normal',
       Pgain:()=>{
-         var tax = 1-getChallengeCompletion('o1','C4',layerKey)*.02
-         tax*=tax;tax*=tax
          var gain = (n>1?getPointGain(prevKeys[1]).add(getPoint(prevKeys[1])):getPointGain('').add(getPoint('')))
-         .sqrt().mul(Decimal.pow10(-(n**tax)))
+         .sqrt().mul(Decimal.pow10(-(n**(1-scaleTax(getChallengeCompletion('o1','C4',layerKey),1000)))))
          //bonus
          hasUpgrade(layerKey,'U2')&&(gain = TEN.add(getThingAmount(prevKeys[1],'E0')).log10().mul(gain))
          //challenge penalty
@@ -31,7 +29,8 @@ output:expr=>{
       tooltip:n>1 ? (()=>{
          var C4 = getChallengeCompletion('o1','C4',layerKey)
          return 'Gain formula: ('+Notation.displayShort(prevExprs[1])+'P)^0.5'+
-         (C4===50 ? ' / 10' : ' / 10^'+n+(C4? '^'+format((1-C4*.02)**4) :''))
+         (C4===50 ? ' / 10' : ' / 10^'+n+(C4? '^'+format(1-scaleTax(C4,1000)) :''))+
+         (hasUpgrade('1','U1')&&player.L['1,1,1']?'<br>Tax reward: ^'+n+' -> ^'+n+'^(1-(1000^(completion/50)-1)/999)':'')
       }) : 'Gain formula: (number)^0.5 / 10',
    }],
    ['P_effect',{type:'computed',calc:()=>ONE.add(getPoint(layerKey)).sqrt().sqrt()}]]
