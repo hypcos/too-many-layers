@@ -274,7 +274,7 @@ var lastSave = Date.now()
    progressTexts.splice(Math.min(i,target))
 }
 /*computed numbers; access a number via computed[layerKey+'"'+thingKey]; computed[layerKey+'"P'] is calculated point gain*/
-var computed = Vue.reactive({})
+var computed = {}
 ,hasComputed = new Set()
 var watchers = new Map()
 /*methods*/
