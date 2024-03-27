@@ -16,7 +16,7 @@
 <div id="game">
    <div class="alter" v-for="item in progressTexts">Progress to {{item[0]}}: {{item[1]}}%</div>
    Your number is <span style="font-size:50px" v-html="format(getPoint(''))"></span><br>
-   <button style="width:344px;position:relative" :disabled="!canBuyBuyable('','G')"
+   <button style="width:344px;position:relative" :disabled="!canBuyBuyable('','G')" @contextmenu.prevent
    @mousedown="delay(buyBuyable,'','G')" @dblclick="delay(buymaxBuyable,'','G')">
       Buy generator for {{getCostText('','G')}}<br>
       Current amount: {{format(getThingAmount('','G'),true)}}
@@ -343,7 +343,7 @@
          <div v-for="u1 in currentLayerLayout.upgrades">
             <template v-for="btn in u1">
             <button v-if="!currentLayerThings[btn].hidden?.()" class="cell upg"
-            :class="[hasBinaryThing(currentLayer,btn)?'already':'',currentLayerLayout.colors]"
+            :class="[isMaxed(currentLayer,btn)?'already':'',currentLayerLayout.colors]"
             :disabled="!canBuyUpgrade(currentLayer,btn)" @mousedown="delay(buyUpgrade,currentLayer,btn)">
                <span class="bold big" v-html="currentLayerThings[btn].fullname"></span>
                <span v-html="currentLayerThings[btn].description?.()"></span>
@@ -359,8 +359,9 @@
             <div v-for="b2 in b1" class="left"
             :class="{cellcolumn:b1.length>4,column2:b1.length===2,column3:b1.length===3,column4:b1.length===4}">
                <template v-for="btn in b2">
-               <button v-if="!currentLayerThings[btn].hidden?.()"
-               class="cell" :class="currentLayerLayout.colors" :disabled="!canBuyBuyable(currentLayer,btn)"
+               <button v-if="!currentLayerThings[btn].hidden?.()" class="cell"
+               :class="[isMaxed(currentLayer,btn)?'already':'',currentLayerLayout.colors]"
+               :disabled="!canBuyBuyable(currentLayer,btn)" @contextmenu.prevent
                @mousedown="delay(buyBuyable,currentLayer,btn)" @dblclick="delay(buymaxBuyable,currentLayer,btn)">
                   <span class="bold big" v-html="currentLayerThings[btn].fullname"></span>
                   <span v-html="currentLayerThings[btn].description?.()"></span>
@@ -368,7 +369,8 @@
                   <span v-if="currentLayerThings[btn+'_mult']">
                      <br>× {{format(getComputed(currentLayer,btn+'_mult')||1)}}
                   </span>
-                  <br>Cost: <span v-html="getCostText(currentLayer,btn)"></span>
+                  <br><span v-if="isMaxed(currentLayer,btn)">MAXED</span>
+                  <span v-else>Cost: <span v-html="getCostText(currentLayer,btn)"></span></span>
                   <span class="tooltip" v-if="currentLayerThings[btn].tooltip" v-html="currentLayerThings[btn].tooltip"></span>
                </button>
                </template>
@@ -438,6 +440,7 @@
 <script src="layers/bottom.js"></script>
 <script src="layers/good1.js"></script>
 <script src="layers/1.js"></script>
+<script src="layers/1,2.js"></script>
 <!--Insert more layers here-->
 <script src="support/play.js"></script>
 </body>

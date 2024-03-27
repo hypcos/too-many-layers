@@ -39,6 +39,7 @@ game = Vue.createApp({setup(){return{
    canPrestige,
    canBuyUpgrade,
    canBuyBuyable,
+   isMaxed,
    prestige,
    buyUpgrade,
    buyBuyable,

@@ -35,7 +35,7 @@ var getLayerThings = layerKey=>layers[layerKey]?.things||new Map()
          break
       default: return ZERO
       }
-      if(ONE.gt(prev)){
+      if(prev!==undefined&&ONE.gt(prev)){
          ONE.lte(computed[key])&&assignChallenges(layerKey)
          Decimal.add(getPointTotal(layerKey),prev).lt(ONE)&&
          Decimal.add(getPointTotal(layerKey),computed[key]).gte(ONE)&&
@@ -97,13 +97,22 @@ var canPrestige = layerKey=>ONE.lte(getPointGain(layerKey))
    :Decimal.min(getPoint(layerKey),spend_amount).gte(single.cost(amount)))
    &&!thing.hidden?.()
 }
+,isMaxed = (layerKey,thingKey)=>{
+   var thing = getLayerThings(layerKey).get(thingKey)
+   if(thing.type==='upgrade') return !!hasUpgrade(layerKey,thingKey)
+   if(!thing.costs) return false
+   var amount = getThingAmount(layerKey,thingKey)
+   return thing.costs.some(single=>INF.eq(single.cost(amount)))
+}
 //get/set end
 
 //Actually do something
 var resetThing = (layerKey,thingKey)=>{
-   var type = getLayerThings(layerKey).get(thingKey)?.type
+   var thing = getLayerThings(layerKey).get(thingKey)
+   var type = thing?.type
    if(type==='upgrade'||type==='achievement') return resetBinaryThing(layerKey,thingKey)
    setThingAmount(layerKey,thingKey,0,true)
+   if(typeof thing?.effect==='function') thing.effect(0)
 }
 ,resetBinaryThing = (layerKey,thingKey)=>setBinaryThing(layerKey,thingKey,0,true)
 ,resetPoint = layerKey=>(resetThing(layerKey,'P'),resetThing(layerKey,''))
@@ -123,15 +132,19 @@ var resetThing = (layerKey,thingKey)=>{
    things.forEach((thing,key)=>thing.type==='produced'&&!keep.has(key)&&(a[key] = 0))
 }
 ,resetLayer = (layerKey,keeps=[])=>{
-   if(keeps.includes('everything')) return player.L[layerKey].t = 0
+   var keep = new Set(keeps)
+   if(keep.has('everything')) return player.L[layerKey].t = 0
    var things = getLayerThings(layerKey)
    //if(!things) return;
    var layer_data = player.L[layerKey]
    //if(!layer_data) return player.L[layerKey] = layerDataDefault(layerKey)
    var old_a = {}
-   keeps.forEach(thingKey=>{
-      if(!things.has(thingKey)) return;
-      var type = things.get(thingKey).type
+   things.forEach((thing,thingKey)=>{
+      if(!keep.has(thingKey)){
+         if(typeof thing.effect==='function') thing.effect(0)
+         return;
+      }
+      var type = thing.type
       if(type==='upgrade'||type==='achievement')
          old_a[thingKey.slice(0,-1)] |= hasBinaryThing(layerKey,thingKey)
       else old_a[thingKey] = layer_data.a[thingKey]
@@ -162,7 +175,8 @@ var buyUpgrade = (layerKey,thingKey,skipcheck=false)=>{
    //if(!player.L[layerKey]) return;
    setBinaryThing(layerKey,thingKey,1,skipcheck)
    //spend the cost
-   getLayerThings(layerKey).get(thingKey).costs.forEach(single=>{
+   var thing = getLayerThings(layerKey).get(thingKey)
+   thing.costs.forEach(single=>{
       if(typeof single.layer==='string') setThingAmount(single.layer,single.thing,
          Decimal.sub(getThingAmount(single.layer,single.thing),single.cost(ZERO)).max(ZERO))
       else setThingAmount(layerKey,'P',Decimal.sub(getPoint(layerKey),single.cost(ZERO)).max(ZERO))
@@ -171,6 +185,7 @@ var buyUpgrade = (layerKey,thingKey,skipcheck=false)=>{
    var auto = layers[layerKey].auto
    auto?.[1]===thingKey&&addAutobuyer(layerKey)
    auto?.[2]===thingKey&&addAutoprestiger(layerKey)
+   if(typeof thing.effect==='function') thing.effect(1)
    applyPostBuy(layerKey,thingKey,ONE,ZERO)
 }
 ,buyBuyable = (layerKey,thingKey,skipcheck=false)=>{
@@ -179,15 +194,18 @@ var buyUpgrade = (layerKey,thingKey,skipcheck=false)=>{
    var amount = getBuyable(layerKey,thingKey)
    setThingAmount(layerKey,thingKey,ONE.add(amount),skipcheck)
    //spend the cost
-   getLayerThings(layerKey).get(thingKey).costs.forEach(single=>{
+   var thing = getLayerThings(layerKey).get(thingKey)
+   thing.costs.forEach(single=>{
       if(typeof single.layer==='string') setThingAmount(single.layer,single.thing,
          Decimal.sub(getThingAmount(single.layer,single.thing),single.cost(amount)).max(ZERO))
       else setThingAmount(layerKey,'P',Decimal.sub(getPoint(layerKey),single.cost(amount)).max(ZERO))
    })
+   if(typeof thing.effect==='function') thing.effect(ONE.add(amount))
    applyPostBuy(layerKey,thingKey,ONE,amount)
 }
 ,buymaxBuyable = (layerKey,thingKey,spend_amount=INF)=>{
-   var costs = getLayerThings(layerKey).get(thingKey)?.costs
+   var thing = getLayerThings(layerKey).get(thingKey)
+   var costs = thing?.costs
    if(!costs||!canBuyBuyable(layerKey,thingKey,spend_amount)) return;
    if(!costs.every(single=>single.sumcost&&single.invSumcost)) return buyBuyable(layerKey,thingKey,true)
    var had = getBuyable(layerKey,thingKey)
@@ -197,7 +215,8 @@ var buyUpgrade = (layerKey,thingKey,skipcheck=false)=>{
       ?Decimal.add(getThingAmount(single.layer,single.thing),already_spent)
       :Decimal.min(getPoint(layerKey),spend_amount).add(already_spent)
       return single.invSumcost(total_spent).floor()
-   }).reduce(Decimal.min,INF).max(had)
+   }).reduce(Decimal.min,INF)
+   if(target.lte(had)) return;
    //gain the buyable
    setThingAmount(layerKey,thingKey,target,true)
    //spend the cost
@@ -207,6 +226,7 @@ var buyUpgrade = (layerKey,thingKey,skipcheck=false)=>{
          Decimal.sub(getThingAmount(single.layer,single.thing),spend).max(ZERO),true)
       else setThingAmount(layerKey,'P',Decimal.sub(getPoint(layerKey),spend).max(ZERO),true)
    })
+   if(typeof thing.effect==='function') thing.effect(target)
    applyPostBuy(layerKey,thingKey,target.sub(had),had)
 }
 var buymaxLayer = layerKey=>getLayerThings(layerKey).forEach((thing,thingKey)=>{
@@ -283,11 +303,11 @@ var getCostText = (layerKey,thingKey)=>{
 ,getLayerShortname = layerKey=>layers[layerKey].shortname||Notation.displayShort(Notation.parse(layerKey))
 ,getThingFullname = (layerKey,thingKey)=>{
    var thing = getLayerThings(layerKey).get(thingKey)
-   return thing?.fullname||thing?.shortname||(thingKey==='P'?getLayerFullname(thingKey)+'points':getLayerFullname(layerKey)+thingKey)
+   return thing?.fullname||thing?.shortname||getLayerFullname(layerKey)+' '+(thingKey==='P'?'points':thingKey)
 }
 ,getThingShortname = (layerKey,thingKey)=>{
    var thing = getLayerThings(layerKey).get(thingKey)
-   return thing?.shortname||(thingKey==='P'?'points':getLayerShortname(layerKey)+thingKey)
+   return thing?.shortname||getLayerShortname(layerKey)+(thingKey==='P'?'P':thingKey)
 }
 ,format = (num,isInt=false,precision=player.D)=>{
    var dnum = new Decimal(num)

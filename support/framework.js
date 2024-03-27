@@ -87,7 +87,7 @@ where each thing (thingKey P means points, '' ("stored" type) means total points
       _sumcost:(amount)=>value for respec + price-based challenge
       layer:layerKey optional
       thing:thingKey along with layer
-   effect: (newamount,oldamount)=>{do something;} after buy, like a $watch callback function
+   effect: (newamount)=>{do something;} after buy and reset
    difficultyMax: Number for challenges
    challengeReject: (triggerLayer,queueDifficulty)=>boolean for challenges
    assignReject: (triggerLayer)=>boolean for challenges
@@ -141,13 +141,6 @@ var layerFactories = []
    var dataDefault = layerDataDefault(layerKey)
    player.L[layerKey] = Object.assign(Object.assign({},dataDefault), player.L[layerKey])
    player.L[layerKey].a = Object.assign(dataDefault.a, player.L[layerKey].a)
-   getLayerThings(layerKey).forEach((thing,thingKey)=>
-      typeof thing.effect==='function'&& (watchers.has(layerKey+'"'+thingKey)|| watchers.set(layerKey+'"'+thingKey,Vue.watch(
-         thing.type==='upgrade'||thing.type==='achievement'
-         ?(()=>hasBinaryThing(layerKey,thingKey))
-         :(()=>''+getThingAmount(layerKey,thingKey))
-      ,thing.effect)))
-   )
    !autobuyerPool.has(layerKey)&&player.A.some(x=>x[0]===layerKey)&&autobuyerPool.add(layerKey)
    !autoprestigerPool.has(layerKey)&&player.a.some(x=>x[0]===layerKey)&&autoprestigerPool.add(layerKey)
 }
@@ -276,7 +269,6 @@ var lastSave = Date.now()
 /*computed numbers; access a number via computed[layerKey+'"'+thingKey]; computed[layerKey+'"P'] is calculated point gain*/
 var computed = {}
 ,hasComputed = new Set()
-var watchers = new Map()
 /*methods*/
 var delay = (f,...args)=>setTimeout(f,0,...args)
 ,isNormalLayer = layerKey=>Notation.parse(layerKey).slice(0,NOTATION_OFFSET).every(e=>!e.length)

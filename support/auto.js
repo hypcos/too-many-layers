@@ -97,6 +97,7 @@ var testTrigger = (layerKey,item)=>{
       left = player.L[layerKey].t||0
       right = new Decimal(player.L[layerKey].r||0)
       if(has3rd) another = new Decimal(player.L[item[5]].r||0)
+      break
    case 3:
       left = player.L[item[5]].r||0
       right = new Decimal(player.L[layerKey].r||0)

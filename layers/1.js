@@ -112,6 +112,8 @@ output:expr=>{
    }}],['G0_mult',{type:'computed',calc:()=>{
       var mult = ONE.add(getProduced(nextKeys[1],'E0'))
       .mul(getComputed(nextKeys[1],'P_effect')||ONE)
+      mult = ONE.add(getProduced('1,2','G0E0')).mul(mult)
+      if(getComputed('1,2','P_target')?.has(n)) mult = (getComputed('1,2','P_effect')||ONE).mul(mult)
       //challenge penalty
       mult = applyMyopiaPenalty(layerKey,'G0',mult)
       mult = antimatterPenalty().mul(mult)
