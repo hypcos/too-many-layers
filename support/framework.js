@@ -66,7 +66,7 @@ var playerDefault = ()=>({
    }
    auto: [String/Function working-on, String autobuyer, String autoprestiger]
       Function working-on: (layerKey)=>boolean true:accept the layer as working target
-   hasSublayer: boolean
+   hasSublayer: ()=>boolean
    hidden: ()=>boolean
 where each thing (thingKey P means points, '' ("stored" type) means total points, Uyx/Ayx means upgrade/achievement yx) has
    fullname: string
@@ -123,8 +123,8 @@ where each thing (thingKey P means points, '' ("stored" type) means total points
       a:Object.assign(a,init)//thingKey:amount for non-upgrade stored thing
       ,c:['',0]//[thingKey,difficulty] for queue challenge
       ,C:['',0,'']//[thingKey,difficulty,trigger layerKey] for running challenges
-      ,r:0//reset count since previous reset of higher layers
-      ,t:player.g//seconds since previous reset or reset of higher layers
+      ,r:0//prestige count since previous reset of higher layers
+      ,t:player.g//seconds since previous prestige or reset of higher layers
    }:{
       a:Object.assign(a,init)
       ,r:0
@@ -147,7 +147,7 @@ var layerFactories = []
 ,addLayersAbove = (layerKey)=>{
    var idx = layerKeys.indexOf(layerKey)
    ,lowExpr = Notation.parse(layerKey)
-   getNextExpressions(lowExpr, idx?Notation.parse(layerKeys[idx-1]):undefined, layers[layerKey].hasSublayer?0:undefined)
+   getNextExpressions(lowExpr, idx?Notation.parse(layerKeys[idx-1]):undefined, layers[layerKey].hasSublayer?.()?0:undefined)
    .forEach(expr=>{
       var factory = layerFactories.find(e=>e.accept(expr))
       if(!factory) return;

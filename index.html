@@ -76,9 +76,9 @@
          </div>
       </div>
       Hotkeys:
-      <br>A: toggle all autobuyers. R: toggle all autoresets.
+      <br>A: toggle all autobuyers. R: toggle all autoprestiges.
       <br>Shift + 0~9 to record the viewing layer. 0~9 to visit the recorded layer.
-      <br>Space: reset from that layer.
+      <br>Space: prestige that layer.
       <br>B: buy max of that layer.
       <br>N: buy max of number generator.
       <br>M: buy max of everything.
@@ -92,7 +92,7 @@
    <template v-if="tabs.topleft===2">
       <div class="tab">
          <button @mousedown="tabs.autos=0" :disabled="tabs.autos===0">Autobuyers</button>
-         <button @mousedown="tabs.autos=1" :disabled="tabs.autos===1">Autoresets</button>
+         <button @mousedown="tabs.autos=1" :disabled="tabs.autos===1">Autoprestigers</button>
       </div>
       <div class="autos" v-if="tabs.autos===0">
          <div class="column3">
@@ -173,7 +173,7 @@
          <div class="column3" style="width:66.66%">
             <template v-if="autoprestigerSelected.length">
             <div class="bigrow">
-               Your autoreset bought in {{getLayerShortname(autoprestigerSelected[0])}} is
+               Your autoprestiger bought in {{getLayerShortname(autoprestigerSelected[0])}} is
                <button class="switchy" @mousedown="autoprestigerSelected[1]=+!autoprestigerSelected[1]">
                   {{autoprestigerSelected[1]?'On':'Off'}}
                </button>
@@ -181,7 +181,7 @@
             </div>
             <div v-if="hasAutoprestiger(autoprestigerSelected[0])">&nbsp;</div>
             <div v-else>
-               Currently you do not have the autoreset. Go to {{getLayerShortname(autoprestigerSelected[0])}}
+               Currently you do not have the autoprestiger. Go to {{getLayerShortname(autoprestigerSelected[0])}}
                and buy it if you want it to work.
             </div>
             <div class="bigrow">
@@ -189,11 +189,11 @@
                <select v-model.number="autoprestigerSelected[4]">
                   <option value="0">Target layer's point gain based on total points</option>
                   <option value="1">Target layer's point gain based on total points and total points of another layer</option>
-                  <option value="2">Target layer's point gain based on reset counts</option>
-                  <option value="3">Target layer's point gain based on reset counts and reset counts of another layer</option>
-                  <option value="4">Time/s in target layer based on reset counts</option>
-                  <option value="5">Time/s in target layer based on reset counts and reset counts of another layer</option>
-                  <option value="6">Reset counts of another layer based on reset counts of target layer</option>
+                  <option value="2">Target layer's point gain based on prestige counts</option>
+                  <option value="3">Target layer's point gain based on prestige counts and prestige counts of another layer</option>
+                  <option value="4">Time/s in target layer based on prestige counts</option>
+                  <option value="5">Time/s in target layer based on prestige counts and prestige counts of another layer</option>
+                  <option value="6">Prestige counts of another layer based on prestige counts of target layer</option>
                </select>
             </div>
             <div class="bigrow" v-if="(autoprestigerSelected[4]&1)||(autoprestigerSelected[4]===6)">
@@ -207,7 +207,7 @@
                And taking lg(1+...)'s
                <input type="range" style="width:200px" v-model.number="autoprestigerSelected[6][0]" min="0" max="8">
                <input type="range" style="width:200px" v-model.number="autoprestigerSelected[6][1]" min="0" max="8">
-               <br>The autoreset will trigger when {{applyLogText(apFormulaLRR[0],autoprestigerSelected[6][0])}} ≥
+               <br>The autoprestiger will trigger when {{applyLogText(apFormulaLRR[0],autoprestigerSelected[6][0])}} ≥
                <span v-if="autoprestigerSelected[4]&1">
                   <input v-model="apFormulaInputs[0]" @keydown.stop @change="invUpdate_apInputs(0)"> +
                   <input v-model="apFormulaInputs[1]" @keydown.stop @change="invUpdate_apInputs(1)">
@@ -253,57 +253,61 @@
                Prioritization mode
                <button class="switchy" @mousedown="autoprestigerSelected[2]=(autoprestigerSelected[2]+1)%6">&gt;</button><br>
                <span v-if="autoprestigerSelected[2]===0">
-                  Autoreset immediately fires once it reaches the threshold.
+                  Autoprestiger immediately fires once it reaches the threshold.
                </span>
                <span v-else-if="autoprestigerSelected[2]===1">
-                  If threshold reached, the autoreset fires only if next autoreset doesn't reach its threshold.<br>
-                  If threshold unreached, ignore the autoresets until the one bought in
+                  If threshold reached, the autoprestiger fires only if next autoprestiger doesn't reach its threshold.<br>
+                  If threshold unreached, ignore the autoprestigers until the one bought in
                   <select v-model="autoprestigerSelected[3]">
                      <option v-for="item in player.a" :value="item[0]">
                      {{getLayerShortname(item[0])}}</option>
                   </select><br>
-                  (selecting itself or a high-priority autoreset, this one will skip everything below)
+                  (selecting itself or a high-priority autoprestiger, this one will skip everything below)
                </span>
                <span v-else-if="autoprestigerSelected[2]===2">
-                  If threshold reached, the autoreset fires only if it makes bigger point gain multiplier than lower-priority autoresets.
-                  <br>The comparison ends at the autoreset bought in
+                  If threshold reached, the autoprestiger fires only if
+                  it makes bigger point gain multiplier than lower-priority autoprestigers.
+                  <br>The comparison ends at the autoprestiger bought in
                   <select v-model="autoprestigerSelected[3]">
                      <option v-for="item in player.a" :value="item[0]">
                      {{getLayerShortname(item[0])}}</option>
                   </select><br>
-                  (selecting itself or a high-priority autoreset, this one will compare everything below)
-                  <br>If threshold unreached, ignore the autoresets until the one bought in that layer.
+                  (selecting itself or a high-priority autoprestiger, this one will compare everything below)
+                  <br>If threshold unreached, ignore the autoprestigers until the one bought in that layer.
                </span>
                <span v-else-if="autoprestigerSelected[2]===3">
-                  If threshold reached, the autoreset fires only if it makes bigger point gain multiplier than lower-priority autoresets.
-                  <br>The comparison ends at any autoreset with threshold unreached or the autoreset bought in
+                  If threshold reached, the autoprestiger fires only if
+                  it makes bigger point gain multiplier than lower-priority autoprestigers.
+                  <br>The comparison ends at any autoprestiger with threshold unreached or the autoprestiger bought in
                   <select v-model="autoprestigerSelected[3]">
                      <option v-for="item in player.a" :value="item[0]">
                      {{getLayerShortname(item[0])}}</option>
                   </select><br>
-                  (selecting itself or a high-priority autoreset, this one will compare everything below)
-                  <br>If threshold unreached, ignore the autoresets until the one bought in that layer.
+                  (selecting itself or a high-priority autoprestiger, this one will compare everything below)
+                  <br>If threshold unreached, ignore the autoprestigers until the one bought in that layer.
                </span>
                <span v-else-if="autoprestigerSelected[2]===4">
-                  If threshold reached, the autoreset fires only if it makes bigger point gain multiplier than lower-priority autoresets.
-                  <br>The comparison ends at the autoreset bought in
+                  If threshold reached, the autoprestiger fires only if
+                  it makes bigger point gain multiplier than lower-priority autoprestigers.
+                  <br>The comparison ends at the autoprestiger bought in
                   <select v-model="autoprestigerSelected[3]">
                      <option v-for="item in player.a" :value="item[0]">
                      {{getLayerShortname(item[0])}}</option>
                   </select><br>
-                  (selecting itself or a high-priority autoreset, this one will compare everything below)
+                  (selecting itself or a high-priority autoprestiger, this one will compare everything below)
                </span>
                <span v-else-if="autoprestigerSelected[2]===5">
-                  If threshold reached, the autoreset fires only if it makes bigger point gain multiplier than lower-priority autoresets.
-                  <br>The comparison ends at any autoreset with threshold unreached or the autoreset bought in
+                  If threshold reached, the autoprestiger fires only if
+                  it makes bigger point gain multiplier than lower-priority autoprestigers.
+                  <br>The comparison ends at any autoprestiger with threshold unreached or the autoprestiger bought in
                   <select v-model="autoprestigerSelected[3]">
                      <option v-for="item in player.a" :value="item[0]">
                      {{getLayerShortname(item[0])}}</option>
                   </select><br>
-                  (selecting itself or a high-priority autoreset, this one will compare everything below)
+                  (selecting itself or a high-priority autoprestiger, this one will compare everything below)
                </span>
             </div>
-            The prioritization modes will see Off or not-yet-bought autoresets as if they don't exist on the list.
+            The prioritization modes will see Off or not-yet-bought autoprestigers as if they don't exist on the list.
             </template>
          </div>
       </div>
@@ -325,7 +329,7 @@
          </div>
          <button class="prestige" :class="currentLayerLayout.colors"
          :disabled="!canPrestige(currentLayer)" @mousedown="delay(prestige,currentLayer)">
-            Reset to gain <span class="big" v-html="formatFloor(getPointGain(currentLayer))"></span>
+            Prestige for <span class="big" v-html="formatFloor(getPointGain(currentLayer))"></span>
             <span v-if="canShowPercent(getPointGain(currentLayer))">
                <br>{{formatPercent(getPointGain(currentLayer))}}% progress to gain next
             </span>
@@ -334,8 +338,8 @@
          </button>
          <br>You have gained {{format(getPointTotal(currentLayer),true)}}
          {{getThingShortname(currentLayer,'P')}}
-         with {{player.L[currentLayer].r}} resets since higher layer reset.
-         You have spent {{format(player.L[currentLayer].t)}} seconds in this reset.
+         in {{player.L[currentLayer].r}} prestiges.
+         You have played {{format(player.L[currentLayer].t)}} seconds in this prestige run.
       </template>
       <div v-html="applyExtraTexts(currentLayer)"></div>
       <template v-if="currentLayerLayout.upgrades">
@@ -383,7 +387,7 @@
       <template v-if="currentLayerLayout.challenges">
          <div class="bold" style="font-size:30px">Challenges:</div>
          A challenge is a modified game fragment under some penalty conditions,
-         started at a reset of any layer, forced to exit when you reach the layer again (after claiming its reward).<br>
+         started at a prestige of any layer, forced to exit when you reach the layer again (after claiming its reward).<br>
          <button class="itemrow3" style="font-size:24px;font-weight:bold"
          :disabled="!getChallengeRunning(currentLayer)[1]" @mousedown="delay(endLayerChallenge,currentLayer)">
             You can exit a challenge at will

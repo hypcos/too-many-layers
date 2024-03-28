@@ -28,10 +28,11 @@ output:expr=>{
          format(getComputed(layerKey,'P_effect')||ONE)+' ((1+points)^0.25)',
       tooltip:n>1 ? (()=>{
          var C4 = getChallengeCompletion('o1','C4',layerKey)
-         return 'Gain formula: ('+Notation.displayShort(prevExprs[1])+'P)^0.5'+
-         (C4===50 ? ' / 10' : ' / 10^'+n+(C4? '^'+format(1-scaleTax(C4,1000)) :''))+
-         (hasUpgrade('1','U1')&&player.L['1,1,1']?'<br>Tax reward: ^'+n+' -> ^'+n+'^(1-(1000^(completion/50)-1)/999)':'')
-      }) : 'Gain formula: (number)^0.5 / 10',
+         return 'Gain formula: ('+Notation.displayShort(prevExprs[1])+'P)^0.5 / 10^'+n+
+         (C4? '^'+format(1-scaleTax(C4,1000)) :'')+
+         (hasUpgrade('1','U1')&&player.L['1,1,1']?'<br>Tax reward: ^'+n+' -> ^'+n+'^(1-(1000^(completion/50)-1)/1000)':'')
+      }) : 'Prestige, meaning you gain some points of this layer<br>But as a cost, all lower layer contents will be reset'+
+      '<br>Gain formula: (number)^0.5 / 10',
    }],
    ['P_effect',{type:'computed',calc:()=>ONE.add(getPoint(layerKey)).sqrt().sqrt()}]]
    upgs = [['U0',{
@@ -49,7 +50,7 @@ output:expr=>{
          invCost:()=>ZERO,
       }],
       shortname:'U12',
-      description:()=>'Autoreset for '+Notation.displayShort(prevExprs[1]),
+      description:()=>'Autoprestiger for '+Notation.displayShort(prevExprs[1]),
    }:{
       type:'upgrade',
       costs:[{
@@ -67,7 +68,7 @@ output:expr=>{
          invCost:()=>ZERO,
       }],
       shortname:'U1'+Math.min(n+2,8),
-      description:()=>Notation.displayShort(prevExprs[1])+' energy affects '+Notation.displayShort(expr)+'P gain'+
+      description:()=>Notation.displayShort(prevExprs[1])+' Energy affects '+Notation.displayShort(expr)+'P gain'+
       '<br>Currently: ×'+format(TEN.add(getThingAmount(prevKeys[1],'E0')).log10()),
       tooltip:'Formula: lg(10+X)',
    },192])
@@ -81,7 +82,7 @@ output:expr=>{
             invCost:()=>ZERO,
          }],
          shortname:'U1'+(i+2),
-         description:()=>'Have one extra '+Notation.displayShort(prevExprs[i])+' generator',
+         description:()=>'Have one additional '+Notation.displayShort(prevExprs[i])+' Generator',
       },rawCost1]
    }
    for(i=1;i<=5&&i<n;++i) upgs.push(upgFactory(i))
@@ -103,8 +104,8 @@ output:expr=>{
          cost:x=>pow2cost(x).mul(pricePenalty(layerKey,'G0')),
          invCost:y=>pow2invCost(invPricePenalty(layerKey,'G0').mul(y)),
       }],
-      fullname:Notation.display(expr)+' generator',
-      tooltip:'Produce '+Notation.display(expr)+' energy<br>Cost formula: (1+amount)',
+      fullname:'Generator',
+      tooltip:'Produce Energy<br>Cost formula: (1+amount)',
    }],['G0_add',{type:'computed',calc:()=>{
       var extra = ZERO
       for(var i=1;i<=5;++i) extra = extra.add(Math.sign(hasUpgrade(nextKeys[i],'U'+(i+2).toString(32))))
@@ -112,14 +113,14 @@ output:expr=>{
    }}],['G0_mult',{type:'computed',calc:()=>{
       var mult = ONE.add(getProduced(nextKeys[1],'E0'))
       .mul(getComputed(nextKeys[1],'P_effect')||ONE)
-      mult = ONE.add(getProduced('1,2','G0E0')).mul(mult)
+      mult = ONE.add(getProduced('1,2','E0')).mul(mult)
       if(getComputed('1,2','P_target')?.has(n)) mult = (getComputed('1,2','P_effect')||ONE).mul(mult)
       //challenge penalty
       mult = applyMyopiaPenalty(layerKey,'G0',mult)
       mult = antimatterPenalty().mul(mult)
       return mult
    }}],['E0',{type:'produced',description:()=>'You have '+format(getProduced(layerKey,'E0'))+
-      ' '+Notation.display(expr)+' energy (+ '+format(getComputed(layerKey,'E0_speed')||ZERO)+'/s)'+
+      ' Energy (+ '+format(getComputed(layerKey,'E0_speed')||ZERO)+'/s)'+
       (n>1?', multiplying '+Notation.displayShort(prevExprs[1])+' production by ':', multiplying number production by ')+
       format(ONE.add(getProduced(layerKey,'E0')))
    }],['E0_speed',{type:'computed',calc:()=>(getComputed(layerKey,'G0_add')||ZERO)

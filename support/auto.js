@@ -246,10 +246,10 @@ var apFormulaLRR = Vue.computed(()=>{
    return [
       mode<=3?"target layer's points gain":
       mode<=5?'time/s in target layer':
-      getLayerShortname(autoprestigerSelected.value[5])+' resets',
-      mode<=1?"total points":"resets",
+      getLayerShortname(autoprestigerSelected.value[5])+' prestiges',
+      mode<=1?"total points":"prestiges",
       mode===1?'total '+getLayerShortname(autoprestigerSelected.value[5])+'P':
-      getLayerShortname(autoprestigerSelected.value[5])+' resets'
+      getLayerShortname(autoprestigerSelected.value[5])+' prestiges'
    ]
 })
 var applyLogText = (x,n)=>n>1?'lg'+('⁰¹²³⁴⁵⁶⁷⁸⁹'.charAt(n))+'(1+'+x+')':n?'lg(1+'+x+')':x

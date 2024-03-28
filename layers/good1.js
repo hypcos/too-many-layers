@@ -19,7 +19,7 @@ var pricePenalty = (layerKey,thingKey)=>{
    if(d) return Decimal.pow(1-scaleTax(d,1e5),getThingAmount('o1','t')?.[layerKey]||ZERO)
    else return ONE
 }
-var scaleTax = (d,range)=>(range**(d*.02)-1)/(range-1)
+var scaleTax = (d,range)=>(range**(d*.02)-1)/range
 var antimatter_temp = new Map()
 layerFactories.push({accept:expr=>expr.length===NOTATION_OFFSET+2&&
    expr[NOTATION_OFFSET+1]+''==='1'&&
@@ -144,8 +144,8 @@ output:()=>{
    }
    var taxText = (layerKey)=>{
       var eff = Decimal.pow(1-scaleTax(getChallengeDifficulty('o1','C4'),1e5),getThingAmount('o1','t')?.[layerKey]||0)
-      return 'Tax Challenge: your reset gain of this layer is '+
-      (eff.eq(ZERO)? 'zero' : eff.lt(.1) ? 'divided by '+format(eff.recip()) : 'decreased by '+format(ONE.sub(eff).mul(100))+'%')
+      return 'Tax Challenge: your prestige gain of this layer is '+
+      (eff.lt(.1) ? 'divided by '+format(eff.recip()) : 'decreased by '+format(ONE.sub(eff).mul(100))+'%')
    }
    switch(getChallengeRunning('o1')[0]){
    case 'C1':
@@ -286,9 +286,9 @@ output:()=>{
             hidden:()=>!player.L['1,1,1'],
             fullname:'Antimatter Challenge',
             description:()=>'<br>Each layer has antimatter. '+
-               'Antimatter grows depending on how fast point gained in previous reset, and divides all productions.'+
+               'Antimatter grows depending on how fast point gained in previous prestige, and divides all productions.'+
                '<br><br>For each layer you have reached: it does not reset automation.',
-            tooltip:'Antimatter/min = (points/s gained in previous reset)^0.5'+
+            tooltip:'Antimatter/min = (points/s gained in previous prestige)^0.5'+
                '<br>Not suitable for layer 1',
          }],//remember antimatter/sec for each layer
          ['a',{description:()=>{
@@ -328,13 +328,13 @@ output:()=>{
             description:()=>{
                var d = queueDifficulty.o1?.C4||1
                ,eff = scaleTax(d,1e5)
-               return '<br>When any layer resets, each layer '+
+               return '<br>When prestiging anything, each layer '+
                ('decreases point gain by '+format(eff*100)+'%')+
                '.<br><br>For each layer you have reached: improve point gain formula.'
             },
             tooltip:'When a layer gets reset, its penalty also resets'+
                '<br>Not suitable for layer 1',
-         }],//remember reset counts for each layer
+         }],//remember prestige counts for each layer
          ['t',{description:()=>{
             var keys = Object.keys(getThingAmount('o1','C4'))
             if(!keys.length) return ''

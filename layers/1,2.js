@@ -68,7 +68,7 @@ output:()=>{
             if(!player.L[layerKey]) break
             gain = TEN.add(getPointGain(layerKey)).add(getPoint(layerKey)).log10().log10().add(gain)
          }
-         gain = gain.sqrt().mul(.75+scaleTax(getChallengeCompletion('o1','C4','1,2'),100)*7.25).add(-3).pow10()
+         gain = gain.sqrt().mul(.75+scaleTax(getChallengeCompletion('o1','C4','1,2'),200)*8).add(-3).pow10()
          //challenge penalty
          gain = taxPenalty('1,2').mul(gain)
          return gain
@@ -82,8 +82,8 @@ output:()=>{
       tooltip:()=>'Gain formula: 10^((lglg(10+'+getShortname(1)+
       'P) +lglg(10+'+getShortname(2)+
       'P) +lglg(10+'+getShortname(3)+
-      'P) +...)^0.5×'+format(.75+scaleTax(getChallengeCompletion('o1','C4','1,2'),100)*7.25)+
-      '-3)<br>Tax reward: ×0.75 -> ×(0.75+(100^(completion/50)-1)/99×7.25)',
+      'P) +...)^0.5×'+format(.75+scaleTax(getChallengeCompletion('o1','C4','1,2'),200)*8)+
+      '-3)<br>Tax reward: ×0.75 -> ×(0.75+(200^(completion/50)-1)/200×8)',
    }],['P_effect',{
       type:'computed',
       calc:()=>ONE.add(getPoint('1,2')),
@@ -111,7 +111,7 @@ output:()=>{
          invCost:()=>ZERO,
       }],
       shortname:'U12',
-      description:()=>'Autoreset for L1,1,1,...',
+      description:()=>'Autoprestiger for L1,1,1,...',
       tooltip:'It tries high-to-low until a layer met the trigger condition',
    },1536]]
    upgs.sort((a,b)=>Decimal.cmp(a[2],b[2]))
@@ -250,10 +250,10 @@ output:()=>{
    }}],['G0_mult',{type:'computed',calc:()=>{
       return ONE
    }}])
-   normalBuys.push(['G0E0',{type:'produced',description:()=>'You have '+format(getProduced('1,2','G0E0'))+
-      ' Energy 1 (+ '+format(getComputed('1,2','G0E0_speed')||ZERO)+
-      '/s), multiplying all lower layer productions by '+format(ONE.add(getProduced('1,2','G0E0')))
-   }],['G0E0_speed',{type:'computed',calc:()=>{
+   normalBuys.push(['E0',{type:'produced',description:()=>'You have '+format(getProduced('1,2','E0'))+
+      ' Energy 1 (+ '+format(getComputed('1,2','E0_speed')||ZERO)+
+      '/s), multiplying all lower layer productions by '+format(ONE.add(getProduced('1,2','E0')))
+   }],['E0_speed',{type:'computed',calc:()=>{
       return (getComputed('1,2','G0_add')||ZERO).add(getBuyable('1,2','G0')).mul(getComputed('1,2','G0_mult')||ONE)
    }}])
    var buyables = [[buyableRow_Tn],[['G0']]]
@@ -265,10 +265,10 @@ output:()=>{
          P:true,
          upgrades,
          buyables,
-         buyableTexts:['G0E0'],
+         buyableTexts:['E0'],
       },
       production:dt=>{
-         setThingAmount('1,2','G0E0',(getComputed('1,2','G0E0_speed')||ZERO).mul(dt).add(getProduced('1,2','G0E0')))
+         setThingAmount('1,2','E0',(getComputed('1,2','E0_speed')||ZERO).mul(dt).add(getProduced('1,2','E0')))
       },
    }
 }})
