@@ -29,7 +29,7 @@ output:expr=>{
       tooltip:n>1 ? (()=>{
          var C4 = getChallengeCompletion('o1','C4',layerKey)
          return 'Gain formula: ('+Notation.displayShort(prevExprs[1])+'P)^0.5 / 10^'+n+
-         (C4? '^'+format(1-scaleTax(C4,1000)) :'')+
+         (C4? '^'+(C4===50?'0.001':format(1-scaleTax(C4,1000))) :'')+
          (hasUpgrade('1','U1')&&player.L['1,1,1']?'<br>Tax reward: ^'+n+' -> ^'+n+'^(1-(1000^(completion/50)-1)/1000)':'')
       }) : 'Prestige, meaning you gain some points of this layer<br>But as a cost, all lower layer contents will be reset'+
       '<br>Gain formula: (number)^0.5 / 10',

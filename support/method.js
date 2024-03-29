@@ -104,6 +104,8 @@ var canPrestige = layerKey=>ONE.lte(getPointGain(layerKey))
    var amount = getThingAmount(layerKey,thingKey)
    return thing.costs.some(single=>INF.eq(single.cost(amount)))
 }
+,hasAdditional = (layerKey,thingKey)=>getLayerThings(layerKey).get(thingKey+'_add')&&
+   ZERO.lt(getComputed(layerKey,thingKey+'_add'))
 //get/set end
 
 //Actually do something

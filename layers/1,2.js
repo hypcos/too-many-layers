@@ -3,7 +3,8 @@ var finiteCost = (layerKey,thingKey,array)=>{
    var cost = n=>Decimal.lt(n,cap)?pricePenalty(layerKey,thingKey).mul(array[+n]):INF
    var sumarray = [ZERO]
    for(var i=1;i<=cap;++i) sumarray[i] = sumarray[i-1].add(array[i-1])
-   var sumcost = n=>Decimal.lte(n,cap)?pricePenalty(layerKey,thingKey).mul(sumarray[+n]):INF
+   var _sumcost = n=>Decimal.lte(n,cap)?sumarray[+n]:INF
+   var sumcost = n=>pricePenalty(layerKey,thingKey).mul(_sumcost(n))
    var invSumcost = y=>{
       var rawy = invPricePenalty(layerKey,thingKey).mul(y)
       return new Decimal(sumarray.findLastIndex(s=>rawy.gte(s)))
@@ -12,7 +13,7 @@ var finiteCost = (layerKey,thingKey,array)=>{
       var rawy = invPricePenalty(layerKey,thingKey).mul(y)
       return new Decimal(array.findLastIndex(s=>rawy.gte(s)))
    }
-   return {sumcost,invSumcost,cost,invCost}
+   return {sumcost,_sumcost,invSumcost,cost,invCost}
 }
 var dynamicFiniteCost = (layerKey,thingKey,getArray)=>({
    cost:n=>{
@@ -30,6 +31,13 @@ var dynamicFiniteCost = (layerKey,thingKey,getArray)=>({
       var sumarray = [ZERO]
       for(var i=1;i<=cap;++i) sumarray[i] = sumarray[i-1].add(array[i-1])
       return Decimal.lte(n,cap)?pricePenalty(layerKey,thingKey).mul(sumarray[+n]):INF
+   },
+   _sumcost:n=>{
+      var array = getArray()
+      var cap = array.length
+      var sumarray = [ZERO]
+      for(var i=1;i<=cap;++i) sumarray[i] = sumarray[i-1].add(array[i-1])
+      return Decimal.lte(n,cap)?sumarray[+n]:INF
    },
    invSumcost:y=>{
       var array = getArray()

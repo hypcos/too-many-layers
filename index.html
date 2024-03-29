@@ -370,6 +370,7 @@
                   <span class="bold big" v-html="currentLayerThings[btn].fullname"></span>
                   <span v-html="currentLayerThings[btn].description?.()"></span>
                   <br>Amount: {{format(getThingAmount(currentLayer,btn),true)}}
+                  <span v-if="hasAdditional(currentLayer,btn)">+{{format(getComputed(currentLayer,btn+'_add'),true)}}</span>
                   <span v-if="currentLayerThings[btn+'_mult']">
                      <br>× {{format(getComputed(currentLayer,btn+'_mult')||1)}}
                   </span>
