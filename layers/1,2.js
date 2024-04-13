@@ -83,7 +83,7 @@ output:()=>{
       },
       description:()=>{
          var l = []
-         getComputed('1,2','P_target').forEach(n=>l.push(getShortname(n)))
+         getComputed('1,2','P_target').forEach(lk=>l.push(Notation.displayShort(Notation.parse(lk))))
          return ', multiplying '+l.join(' and ')+
          ' productions by '+format(getComputed('1,2','P_effect')||ONE)
       },
@@ -101,7 +101,7 @@ output:()=>{
          var boughts = getDownshiftsAbove(0,true)
          var accumulate = []
          boughts.reduceRight((prev,cur,i)=>accumulate[i]=prev+cur,0)
-         return new Set(accumulate.map((x,n)=>8+n-x))
+         return new Set(accumulate.map((x,n)=>Array(8+n-x).fill('1').join()))
       },
    }]]
    var upgs = [['U0',{
