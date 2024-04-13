@@ -58,29 +58,49 @@ var pow2sumcost = x=>ONE.add(x).mul(HALF).mul(x).round()
 }
 ,pow4invCost = y=>Decimal.mul(y,9).add(TWO).pow(1/3).add(NEGTWO).floor()
 layerFactories.push({accept:expr=>!expr.length,output:()=>({
-   things:new Map([
-      ['P',{shortname:' '}],
-      ['G',{
-         type:'buyable',
-         costs:[{
-            sumcost:x=>pow4sumcost(x).mul(pricePenalty('','G')),
-            invSumcost:y=>pow4invSumcost(invPricePenalty('','G').mul(y)),
-            cost:x=>pow4cost(x).mul(pricePenalty('','G')),
-            invCost:y=>pow4invCost(invPricePenalty('','G').mul(y)),
-         }],
-         fullname:'Number generator',
-         tooltip:'Cost formula: round((2+amount)^3/9)',
+   things:new Map([['P',{
+      shortname:' ',
+   }],['G',{
+      type:'buyable',
+      costs:[{
+         sumcost:x=>pow4sumcost(x).mul(pricePenalty('','G')),
+         invSumcost:y=>pow4invSumcost(invPricePenalty('','G').mul(y)),
+         cost:x=>pow4cost(x).mul(pricePenalty('','G')),
+         invCost:y=>pow4invCost(invPricePenalty('','G').mul(y)),
       }],
-      ['G_mult',{type:'computed',calc:()=>{
-         var mult = ONE.add(getProduced('1','E0'))
-         .mul(getComputed('1','P_effect')||ONE)
-         //challenge penalty
-         mult = applyMyopiaPenalty('','G',mult)
-         mult = antimatterPenalty().mul(mult)
-         return mult
-      }}],
-      ['P_speed',{type:'computed',calc:()=>(getComputed('','G_mult')||ONE).mul(getBuyable('','G'))}],
-   ]),
+      fullname:'Number generator',
+      tooltip:'Cost formula: round((2+amount)^3/9)',
+   }],['G_mult',{type:'computed',calc:()=>{
+      var mult = ONE.add(getProduced('1','E0'))
+      .mul(getComputed('1','P_effect')||ONE)
+      //challenge penalty
+      mult = applyMyopiaPenalty('','G',mult)
+      mult = antimatterPenalty().mul(mult)
+      return mult
+   }}],['P_speed',{type:'computed',calc:()=>(getComputed('','G_mult')||ONE).mul(getBuyable('','G'))
+   }],['global_source_P',{type:'computed',calc:()=>{
+      var collection = new Map()
+      layerKeys.forEach(layerKey=>{
+         var p = getComputed(layerKey,'P_target')
+         if(({}).toString.call(p)!=='[object Set]') return;
+         p.forEach(lk=>{
+            if(!collection.has(lk)) collection.set(lk,new Set())
+            collection.get(lk).add(layerKey)
+         })
+      })
+      return collection
+   }}],['global_source_E',{type:'computed',calc:()=>{
+      var collection = new Map()
+      layerKeys.forEach(layerKey=>{
+         var p = getComputed(layerKey,'E_target')
+         if(({}).toString.call(p)!=='[object Set]') return;
+         p.forEach(lk=>{
+            if(!collection.has(lk)) collection.set(lk,new Set())
+            collection.get(lk).add(layerKey)
+         })
+      })
+      return collection
+   }}]]),
    production:dt=>{
       var incr = (getComputed('','P_speed')||ZERO).mul(dt)
       setThingAmount('','P',incr.add(getPoint('')))

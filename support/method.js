@@ -278,7 +278,7 @@ var startLayerChallenge = (layerKey,trigger)=>{
    getChallengeCompletion(layerKey,running[0],trigger) < running[1] &&
    Notation.compare(Notation.parse(trigger),Notation.parse(running[2]))<=0 &&
    (player.L[layerKey].a[running[0]][trigger] = running[1])
-   if(Notation.compare(Notation.parse(trigger),Notation.parse(running[2]))<0) return;
+   if(trigger!==running[2]) return;
    applyPostChallenge(layerKey,running[0])
    player.L[layerKey].C = ['',0,'']
 }

@@ -76,7 +76,7 @@ output:()=>{
             if(!player.L[layerKey]) break
             gain = TEN.add(getPointGain(layerKey)).add(getPoint(layerKey)).log10().log10().add(gain)
          }
-         gain = gain.sqrt().mul(.75+scaleTax(getChallengeCompletion('o1','C4','1,2'),200)*8).add(-3).pow10()
+         gain = gain.pow(.5+scaleTax(getChallengeCompletion('o1','C4','1,2'),10)).add(-4).pow10()
          //challenge penalty
          gain = taxPenalty('1,2').mul(gain)
          return gain
@@ -87,11 +87,14 @@ output:()=>{
          return ', multiplying '+l.join(' and ')+
          ' productions by '+format(getComputed('1,2','P_effect')||ONE)
       },
-      tooltip:()=>'Gain formula: 10^((lglg(10+'+getShortname(1)+
-      'P) +lglg(10+'+getShortname(2)+
-      'P) +lglg(10+'+getShortname(3)+
-      'P) +...)^0.5×'+format(.75+scaleTax(getChallengeCompletion('o1','C4','1,2'),200)*8)+
-      '-3)<br>Tax reward: ×0.75 -> ×(0.75+(200^(completion/50)-1)/200×8)',
+      tooltip:()=>{
+         var C4 = getChallengeCompletion('o1','C4','1,2')
+         return 'Gain formula: 10^((lglg(10+'+getShortname(1)+
+         'P) +lglg(10+'+getShortname(2)+
+         'P) +lglg(10+'+getShortname(3)+
+         'P) +...)^'+(C4?C4===50?'1.4':format(.5+scaleTax(C4,10)):'0.5')+
+         '-4)<br>Tax reward: ^0.5 -> ^(0.5+(10^(completion/50)-1)/10)'
+      },
    }],['P_effect',{
       type:'computed',
       calc:()=>ONE.add(getPoint('1,2')),
@@ -253,17 +256,19 @@ output:()=>{
       }],
       fullname:'Generator 1',
       tooltip:'Produce Energy 1<br>Cost formula: (1+amount)',
-   }],['G0_add',{type:'computed',calc:()=>{
-      return ZERO
-   }}],['G0_mult',{type:'computed',calc:()=>{
-      return ONE
+   }],['G0_mult',{type:'computed',calc:()=>{
+      var mult = ONE
+      getComputed('','global_source_P')?.get('1,2')?.forEach(source=>mult = (getComputed(source,'P_effect')||ONE).mul(mult))
+      getComputed('','global_source_E')?.get('1,2')?.forEach(source=>mult = ONE.add(getProduced(source,'E0')||ZERO).mul(mult))
+      //challenge penalty
+      mult = applyMyopiaPenalty('1,2','G0',mult)
+      mult = antimatterPenalty().mul(mult)
+      return mult
    }}])
    normalBuys.push(['E0',{type:'produced',description:()=>'You have '+format(getProduced('1,2','E0'))+
       ' Energy 1 (+ '+format(getComputed('1,2','E0_speed')||ZERO)+
       '/s), multiplying all lower layer productions by '+format(ONE.add(getProduced('1,2','E0')))
-   }],['E0_speed',{type:'computed',calc:()=>{
-      return (getComputed('1,2','G0_add')||ZERO).add(getBuyable('1,2','G0')).mul(getComputed('1,2','G0_mult')||ONE)
-   }}])
+   }],['E0_speed',{type:'computed',calc:()=>(getComputed('1,2','G0_mult')||ONE).mul(getBuyable('1,2','G0'))}])
    var buyables = [[buyableRow_Tn],[['G0']]]
    return {
       things:new Map(point.concat(upgs,extraBuys,normalBuys)),
