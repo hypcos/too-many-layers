@@ -294,7 +294,7 @@ var gameloop = dt=>{
 }
 var offlineTime = Vue.ref(0)
 ,runGame = ()=>{
-   setTimeout(runGame,player.u)
+   patchedSetTimeout(runGame,player.u)
    var dt = (Date.now()-player.t)*.001
    if(!(dt>=0)) return;
    player.t = Date.now()
