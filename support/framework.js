@@ -153,6 +153,7 @@ var layerFactories = []
       if(!factory) return;
       var l = Notation.invParse(expr)
       updateLayerInfo(l)
+      if(idx) player.L[l].t = player.L[layerKeys[idx-1]].t
       layerKeys.splice(idx,0,l)
       applyPostNewLayer(l)
    })
